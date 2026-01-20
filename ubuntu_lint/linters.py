@@ -24,3 +24,13 @@ def check_missing_launchpad_bugs_fixed(context: Context):
         return
 
     context.lint_fail("no Launchpad bugs are marked as fixed by this upload")
+
+
+def check_missing_bug_references(context: Context):
+    """
+    Check that the debian/changelog entry contains at least one bug reference.
+    """
+    if context.changelog_entry.lp_bugs_closed:
+        return
+
+    context.lint_fail("no Launchpad bugs are referenced in the changelog entry")

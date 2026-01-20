@@ -8,18 +8,21 @@ from typing import Callable
 
 class Runner:
     all_linters = {
+        "missing-bug-references": ubuntu_lint.check_missing_bug_references,
         "missing-launchpad-bugs-fixed": ubuntu_lint.check_missing_launchpad_bugs_fixed,
         "missing-ubuntu-maintainer": ubuntu_lint.check_missing_ubuntu_maintainer,
     }
 
     # Default actions when linting development release.
     auto_devel = {
+        "missing-bug-references": "warn",
         "missing-launchpad-bugs-fixed": "warn",
         "missing-ubuntu-maintainer": "fail",
     }
 
     # Default actions when linting stable releases.
     auto_stable = {
+        "missing-bug-references": "fail",
         "missing-launchpad-bugs-fixed": "fail",
         "missing-ubuntu-maintainer": "fail",
     }
