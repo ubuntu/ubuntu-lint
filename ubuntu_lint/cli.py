@@ -7,13 +7,19 @@ from typing import Callable
 
 
 class Runner:
-    all_linters = {}
+    all_linters = {
+        "missing-ubuntu-maintainer": ubuntu_lint.check_missing_ubuntu_maintainer,
+    }
 
     # Default actions when linting development release.
-    auto_devel = {}
+    auto_devel = {
+        "missing-ubuntu-maintainer": "fail",
+    }
 
     # Default actions when linting stable releases.
-    auto_stable = {}
+    auto_stable = {
+        "missing-ubuntu-maintainer": "fail",
+    }
 
     def __init__(self):
         self._checks_by_name: dict = self.all_linters
