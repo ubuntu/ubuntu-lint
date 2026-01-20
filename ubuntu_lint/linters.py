@@ -1,0 +1,15 @@
+from ubuntu_lint import Context
+
+
+def check_missing_ubuntu_maintainer(context: Context):
+    """
+    Check if the changes file has appropriately updated the Maintainer field to
+    Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>.
+    """
+    ubuntu_devel = "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>"
+
+    if "ubuntu" not in context.changes.get("Version"):
+        return
+
+    if context.changes.get("Maintainer") != ubuntu_devel:
+        context.lint_fail(f"Maintainer field is not set to {ubuntu_devel}")
