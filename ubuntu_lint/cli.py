@@ -8,16 +8,19 @@ from typing import Callable
 
 class Runner:
     all_linters = {
+        "missing-launchpad-bugs-fixed": ubuntu_lint.check_missing_launchpad_bugs_fixed,
         "missing-ubuntu-maintainer": ubuntu_lint.check_missing_ubuntu_maintainer,
     }
 
     # Default actions when linting development release.
     auto_devel = {
+        "missing-launchpad-bugs-fixed": "warn",
         "missing-ubuntu-maintainer": "fail",
     }
 
     # Default actions when linting stable releases.
     auto_stable = {
+        "missing-launchpad-bugs-fixed": "fail",
         "missing-ubuntu-maintainer": "fail",
     }
 

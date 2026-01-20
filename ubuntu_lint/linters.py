@@ -13,3 +13,14 @@ def check_missing_ubuntu_maintainer(context: Context):
 
     if context.changes.get("Maintainer") != ubuntu_devel:
         context.lint_fail(f"Maintainer field is not set to {ubuntu_devel}")
+
+
+def check_missing_launchpad_bugs_fixed(context: Context):
+    """
+    Check if at least one bug is being fixed by this upload, by checking
+    the Launchpad-Bugs-Fixed field of the changes file.
+    """
+    if context.changes.get("Launchpad-Bugs-Fixed"):
+        return
+
+    context.lint_fail("no Launchpad bugs are marked as fixed by this upload")
