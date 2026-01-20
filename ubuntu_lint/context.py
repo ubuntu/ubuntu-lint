@@ -1,3 +1,5 @@
+import distro_info
+
 from debian import deb822, changelog
 
 
@@ -64,3 +66,17 @@ class Context:
 
     def lint_error(self, msg: str):
         raise RuntimeError(msg)
+
+    def is_stable_release(self) -> bool:
+        """
+        Returns True if the context represents an upload targeting a stable
+        release.
+        """
+        if self._changes:
+            dist = self.changes.get("Distribution", "").partition("-")[0]
+        elif self.changelog_entry:
+            dist = self.changelog_entry.distributions
+        else:
+            raise ValueError("missing required context, require changelog or changes")
+
+        return dist in distro_info.UbuntuDistroInfo().supported()
