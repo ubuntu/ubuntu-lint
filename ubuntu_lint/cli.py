@@ -8,6 +8,7 @@ from typing import Callable
 
 class Runner:
     all_linters = {
+        "distribution-invalid": ubuntu_lint.check_distribution_invalid,
         "missing-bug-references": ubuntu_lint.check_missing_bug_references,
         "missing-launchpad-bugs-fixed": ubuntu_lint.check_missing_launchpad_bugs_fixed,
         "missing-ubuntu-maintainer": ubuntu_lint.check_missing_ubuntu_maintainer,
@@ -15,6 +16,7 @@ class Runner:
 
     # Default actions when linting development release.
     auto_devel = {
+        "distribution-invalid": "fail",
         "missing-bug-references": "warn",
         "missing-launchpad-bugs-fixed": "warn",
         "missing-ubuntu-maintainer": "fail",
@@ -22,6 +24,7 @@ class Runner:
 
     # Default actions when linting stable releases.
     auto_stable = {
+        "distribution-invalid": "fail",
         "missing-bug-references": "fail",
         "missing-launchpad-bugs-fixed": "fail",
         "missing-ubuntu-maintainer": "fail",
