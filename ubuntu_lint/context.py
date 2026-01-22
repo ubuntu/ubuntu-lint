@@ -1,6 +1,7 @@
 import distro_info
 
 from debian import deb822, changelog
+from launchpadlib.launchpad import Launchpad
 
 
 class LintFailure(Exception):
@@ -23,6 +24,7 @@ class Context:
         self,
         changes: str | deb822.Changes | None = None,
         debian_changelog: str | changelog.Changelog | None = None,
+        launchpad_handle: Launchpad | None = None,
     ):
         self._changes: deb822.Changes = None
         if isinstance(changes, str):
@@ -48,6 +50,13 @@ class Context:
 
         if not any((self._changes, self._changelog)):
             raise ValueError("context requires at least one of changes or changelog")
+
+        if launchpad_handle is None:
+            self.lp = Launchpad.login_anonymously("ubuntu-lint", "production")
+        else:
+            self.lp = launchpad_handle
+
+        self.lp_ubuntu = self.lp.distributions["ubuntu"]
 
     @property
     def changes(self) -> deb822.Changes:
