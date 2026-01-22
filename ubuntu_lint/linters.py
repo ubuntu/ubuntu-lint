@@ -1,3 +1,5 @@
+import distro_info
+
 from ubuntu_lint import Context
 
 
@@ -34,3 +36,12 @@ def check_missing_bug_references(context: Context):
         return
 
     context.lint_fail("no Launchpad bugs are referenced in the changelog entry")
+
+
+def check_distribution_invalid(context: Context):
+    """
+    Check that the debian/changelog entry uses a valid Ubuntu release name.
+    """
+    dist = context.changelog_entry.distributions
+    if not distro_info.UbuntuDistroInfo().valid(dist):
+        context.lint_fail(f'"{dist} is not a valid Ubuntu codename')
