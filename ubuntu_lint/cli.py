@@ -12,6 +12,7 @@ class Runner:
         "missing-bug-references": ubuntu_lint.check_missing_bug_references,
         "missing-git-ubuntu-references": ubuntu_lint.check_missing_git_ubuntu_references,
         "missing-launchpad-bugs-fixed": ubuntu_lint.check_missing_launchpad_bugs_fixed,
+        "missing-pending-changelog-entry": ubuntu_lint.check_missing_pending_changelog_entry,
         "missing-ubuntu-maintainer": ubuntu_lint.check_missing_ubuntu_maintainer,
     }
 
@@ -21,6 +22,7 @@ class Runner:
         "missing-bug-references": "warn",
         "missing-git-ubuntu-references": "warn",
         "missing-launchpad-bugs-fixed": "warn",
+        "missing-pending-changelog-entry": "warn",
         "missing-ubuntu-maintainer": "fail",
     }
 
@@ -30,6 +32,7 @@ class Runner:
         "missing-bug-references": "fail",
         "missing-git-ubuntu-references": "warn",
         "missing-launchpad-bugs-fixed": "fail",
+        "missing-pending-changelog-entry": "fail",
         "missing-ubuntu-maintainer": "fail",
     }
 

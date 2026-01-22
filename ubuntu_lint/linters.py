@@ -1,6 +1,7 @@
 import distro_info
 import requests
 
+from debian import changelog
 from ubuntu_lint import Context
 
 
@@ -74,3 +75,49 @@ def check_missing_git_ubuntu_references(context: Context):
         return
 
     context.lint_fail("Vcs-Git fields in changes file do not match the remote")
+
+
+def check_missing_pending_changelog_entry(context: Context):
+    """
+    Checks if the changes file is missing pending changelog entries,
+    i.e. entries for uploads which are still in -proposed. This is a warning
+    for the development release, and an error for stable releases.
+    """
+    dist = context.changes.get("Distribution", "").partition("-")[0]
+    package = context.changes.get("Source")
+
+    series = context.lp_ubuntu.getSeries(name_or_version=dist)
+    published = context.lp_ubuntu.main_archive.getPublishedSources(
+        source_name=package, distro_series=series, exact_match=True
+    )
+
+    pending_versions = set()
+    for v in published:
+        if v.pocket != "Proposed":
+            break
+
+        pending_versions.add(v.source_package_version)
+
+    if not pending_versions:
+        # There is not anything in -proposed, nothing more to do.
+        return
+
+    # Mangle the Changes field so that we can parse it like a changelog.
+    s = context.changes.get("Changes")
+    s = s.replace(f"\n .\n {package}", f"\n  --\n {package}")
+    s = s + "\n  --\n"
+    lines = ["" if v == " ." else v[1:] for v in s.splitlines()]
+
+    ch = changelog.Changelog(lines, allow_empty_author=True)
+    changes_versions = set([str(v) for v in ch.get_versions()])
+
+    if pending_versions > changes_versions:
+        # The versions listed in the changes file is not a superset
+        # of the pending versions according to Launchpad.
+        missing_versions = ",".join(pending_versions - changes_versions)
+
+        context.lint_fail(
+            "the following versions have been published in proposed "
+            "but have not migrated, and are not included in the "
+            "changes file: " + missing_versions
+        )
