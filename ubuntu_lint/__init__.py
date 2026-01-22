@@ -4,4 +4,5 @@ from .linters import (
     check_missing_launchpad_bugs_fixed,
     check_missing_bug_references,
     check_distribution_invalid,
+    check_missing_git_ubuntu_references,
 )

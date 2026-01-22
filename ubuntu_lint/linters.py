@@ -1,4 +1,5 @@
 import distro_info
+import requests
 
 from ubuntu_lint import Context
 
@@ -45,3 +46,31 @@ def check_distribution_invalid(context: Context):
     dist = context.changelog_entry.distributions
     if not distro_info.UbuntuDistroInfo().valid(dist):
         context.lint_fail(f'"{dist} is not a valid Ubuntu codename')
+
+
+def check_missing_git_ubuntu_references(context: Context):
+    """
+    Check that the changes file is suitable for git-ubuntu uploads.
+
+    In particular, check that:
+
+     - Vcs-Git is a valid URL pointing to a git-ubuntu repository
+     - Vcs-Git-Commit is a valid object in that repository
+     - Vcs-Git-Ref is a reference to the object given in Vcs-Git-Commit
+    """
+    missing = []
+    if not (vcs_git := context.changes.get("Vcs-Git")):
+        missing.append("Vcs-Git")
+    if not (vcs_git_commit := context.changes.get("Vcs-Git-Commit")):
+        missing.append("Vcs-Git-Commit")
+    if not (vcs_git_ref := context.changes.get("Vcs-Git-Ref")):
+        missing.append("Vcs-Git-Ref")
+
+    if missing:
+        context.lint_fail("changes file is missing {}".format(", ".join(missing)))
+
+    r = requests.get(f"{vcs_git}/patch/?h={vcs_git_ref}")
+    if r.ok and r.text.startswith(f"From {vcs_git_commit} "):
+        return
+
+    context.lint_fail("Vcs-Git fields in changes file do not match the remote")
