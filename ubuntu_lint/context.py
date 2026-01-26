@@ -51,12 +51,8 @@ class Context:
         if not any((self._changes, self._changelog)):
             raise ValueError("context requires at least one of changes or changelog")
 
-        if launchpad_handle is None:
-            self.lp = Launchpad.login_anonymously("ubuntu-lint", "production")
-        else:
-            self.lp = launchpad_handle
-
-        self.lp_ubuntu = self.lp.distributions["ubuntu"]
+        if launchpad_handle is not None:
+            self._lp = launchpad_handle
 
     @property
     def changes(self) -> deb822.Changes:
@@ -69,6 +65,13 @@ class Context:
         if not self._changelog:
             self.lint_error("missing context for changelog entry")
         return self._changelog[0]
+
+    @property
+    def lp(self) -> Launchpad:
+        if not self._lp:
+            self._lp = Launchpad.login_anonymously("ubuntu-lint", "production")
+
+        return self._lp
 
     def lint_fail(self, msg: str):
         raise LintFailure(msg)
