@@ -1,4 +1,5 @@
 import distro_info
+import re
 import requests
 
 from debian import changelog
@@ -121,3 +122,33 @@ def check_missing_pending_changelog_entry(context: Context):
             "but have not migrated, and are not included in the "
             "changes file: " + missing_versions
         )
+
+
+def check_sru_bug_missing_template(context: Context):
+    """
+    For uploads to stable releases, checks that bugs referenced in the changes
+    file have added an SRU template, and warns if it appears the template is
+    incomplete.
+    """
+    if not context.is_stable_release():
+        return
+
+    bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
+
+    if not bugs:
+        context.lint_fail("no bug references found, cannot check for SRU template")
+
+    for n in bugs:
+        try:
+            bug = context.lp.bugs[n]
+            desc = bug.description
+        except KeyError:
+            context.lint_fail(f"bug {n} does not exist or is not public")
+
+        for section in ("impact", "test plan", "where problems could occur"):
+            if not re.match(rf"\[{section}\]", desc, re.I):
+                context.lint_fail(
+                    f"bug {n} description is missing the [{section}] section"
+                    ", see: https://documentation.ubuntu.com/project/SRU/"
+                    "reference/bug-template/#reference-sru-bug-template"
+                )
