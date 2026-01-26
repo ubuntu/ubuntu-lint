@@ -4,9 +4,7 @@ import ubuntu_lint
 
 from debian import deb822
 
-
-basic_changes_no_ubuntu_delta = deb822.Changes(
-    """
+basic_changes_no_ubuntu_delta = deb822.Changes("""
 Format: 1.8
 Date: Wed, 16 Apr 2025 11:50:00 +0200
 Source: hello
@@ -34,11 +32,9 @@ Files:
  121de8e534b189a3e3ddcc584557e29b 1198 devel optional hello_2.10-5.dsc
  d80440ea5a0018680cedcff7160df211 13092 devel optional hello_2.10-5.debian.tar.xz
  c16ad903c1291cb24da33abd6a782419 5943 devel optional hello_2.10-5_source.buildinfo
-"""
-)
+""")
 
-basic_changes_ubuntu_delta = deb822.Changes(
-    """
+basic_changes_ubuntu_delta = deb822.Changes("""
 Format: 1.8
 Date: Mon, 26 Jan 2026 15:13:02 -0500
 Source: hello
@@ -70,8 +66,7 @@ Original-Maintainer: Santiago Vila <sanvila@debian.org>
 Vcs-Git: https://git.launchpad.net/~ubuntu-core-dev/ubuntu/+source/hello
 Vcs-Git-Commit: 6e591bb3a2bbc44dcb6f49499dc7dbee400ce5b9
 Vcs-Git-Ref: refs/heads/testing
-"""
-)
+""")
 
 
 def test_check_missing_ubuntu_maintainer():
@@ -100,4 +95,38 @@ def test_check_missing_launchpad_bugs_fixed():
     with pytest.raises(ubuntu_lint.LintFailure):
         ubuntu_lint.check_missing_launchpad_bugs_fixed(
             ubuntu_lint.Context(changes=changes_missing_lp_bugs_fixed)
+        )
+
+
+def test_check_missing_git_ubuntu_references(requests_mock):
+    vcs_git = basic_changes_ubuntu_delta.get("Vcs-Git")
+    vcs_git_ref = basic_changes_ubuntu_delta.get("Vcs-Git-Ref")
+    vcs_git_commit = basic_changes_ubuntu_delta.get("Vcs-Git-Commit")
+
+    requests_mock.get(
+        f"{vcs_git}/patch/?h={vcs_git_ref}",
+        text=f"From {vcs_git_commit} Mon Sep 17 00:00:00 2001",
+    )
+    ubuntu_lint.check_missing_git_ubuntu_references(
+        ubuntu_lint.Context(changes=basic_changes_ubuntu_delta)
+    )
+
+    # Simulate local commit hash != remote commit hash.
+    requests_mock.get(
+        f"{vcs_git}/patch/?h={vcs_git_ref}",
+        status_code=404,
+    )
+    with pytest.raises(ubuntu_lint.LintFailure):
+        ubuntu_lint.check_missing_git_ubuntu_references(
+            ubuntu_lint.Context(changes=basic_changes_ubuntu_delta)
+        )
+
+    # Refs missing from changes file completely
+    changes_missing_git_ubuntu_refs = copy.deepcopy(basic_changes_ubuntu_delta)
+    for field in ("Vcs-Git", "Vcs-Git-Commit", "Vcs-Git-Ref"):
+        del changes_missing_git_ubuntu_refs[field]
+
+    with pytest.raises(ubuntu_lint.LintFailure):
+        ubuntu_lint.check_missing_git_ubuntu_references(
+            ubuntu_lint.Context(changes=changes_missing_git_ubuntu_refs)
         )
