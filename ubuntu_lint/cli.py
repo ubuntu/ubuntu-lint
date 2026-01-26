@@ -15,6 +15,7 @@ class Runner:
         "missing-pending-changelog-entry": ubuntu_lint.check_missing_pending_changelog_entry,
         "missing-ubuntu-maintainer": ubuntu_lint.check_missing_ubuntu_maintainer,
         "sru-bug-missing-template": ubuntu_lint.check_sru_bug_missing_template,
+        "sru-bug-missing-release-tasks": ubuntu_lint.check_sru_bug_missing_release_tasks,
     }
 
     # Default actions when linting development release.
@@ -26,6 +27,7 @@ class Runner:
         "missing-pending-changelog-entry": "warn",
         "missing-ubuntu-maintainer": "fail",
         "sru-bug-missing-template": "off",
+        "sru-bug-missing-release-tasks": "off",
     }
 
     # Default actions when linting stable releases.
@@ -37,6 +39,7 @@ class Runner:
         "missing-pending-changelog-entry": "fail",
         "missing-ubuntu-maintainer": "fail",
         "sru-bug-missing-template": "warn",
+        "sru-bug-missing-release-tasks": "warn",
     }
 
     def __init__(self):

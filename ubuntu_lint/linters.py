@@ -152,3 +152,41 @@ def check_sru_bug_missing_template(context: Context):
                     ", see: https://documentation.ubuntu.com/project/SRU/"
                     "reference/bug-template/#reference-sru-bug-template"
                 )
+
+
+def check_sru_bug_missing_release_tasks(context: Context):
+    """
+    For uploads to stable releases, checks if the referenced bugs are
+    missing a task for the appropriate release, and warns if not.
+    """
+    if not context.is_stable_release():
+        return
+
+    bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
+
+    if not bugs:
+        context.lint_fail("no bug references found, cannot check for SRU template")
+
+    dist = context.changes.get("Distribution", "").partition("-")[0]
+    series = context.lp_ubuntu.getSeries(name_or_version=dist)
+    series_url = str(series)
+
+    warn = []
+    for n in bugs:
+        try:
+            bug = context.lp.bugs[n]
+        except KeyError:
+            context.lint_fail(f"bug {n} does not exist or is not public")
+
+        for task in bug.bug_tasks:
+            if str(task).startswith(series_url):
+                break
+        else:
+            warn.append(f"LP: #{n}")
+
+    if warn:
+        context.lint_fail(
+            "{} {} missing a bug task for {}".format(
+                ", ".join(warn), "is" if len(warn) == 1 else "are", dist
+            )
+        )
