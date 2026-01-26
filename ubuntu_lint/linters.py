@@ -87,8 +87,9 @@ def check_missing_pending_changelog_entry(context: Context):
     dist = context.changes.get("Distribution", "").partition("-")[0]
     package = context.changes.get("Source")
 
-    series = context.lp_ubuntu.getSeries(name_or_version=dist)
-    published = context.lp_ubuntu.main_archive.getPublishedSources(
+    lp_ubuntu = context.lp.distributions["ubuntu"]
+    series = lp_ubuntu.getSeries(name_or_version=dist)
+    published = lp_ubuntu.main_archive.getPublishedSources(
         source_name=package, distro_series=series, exact_match=True
     )
 
@@ -168,7 +169,8 @@ def check_sru_bug_missing_release_tasks(context: Context):
         context.lint_fail("no bug references found, cannot check for SRU template")
 
     dist = context.changes.get("Distribution", "").partition("-")[0]
-    series = context.lp_ubuntu.getSeries(name_or_version=dist)
+    lp_ubuntu = context.lp.distributions["ubuntu"]
+    series = lp_ubuntu.getSeries(name_or_version=dist)
     series_url = str(series)
 
     warn = []
