@@ -26,7 +26,7 @@ class Context:
         debian_changelog: str | changelog.Changelog | None = None,
         launchpad_handle: Launchpad | None = None,
     ):
-        self._changes: deb822.Changes = None
+        self._changes: deb822.Changes | None = None
         if isinstance(changes, str):
             with open(changes, "r") as f:
                 self._changes = deb822.Changes(f)
@@ -37,7 +37,7 @@ class Context:
         elif changes is not None:
             raise ValueError("invalid type for changes")
 
-        self._changelog: changelog.Changelog = None
+        self._changelog: changelog.Changelog | None = None
         if isinstance(debian_changelog, str):
             with open(debian_changelog, "r") as f:
                 self._changelog = changelog.Changelog(f)
@@ -58,12 +58,16 @@ class Context:
     def changes(self) -> deb822.Changes:
         if not self._changes:
             self.lint_error("missing context for changes file")
+        assert self._changes is not None
+
         return self._changes
 
     @property
     def changelog_entry(self) -> changelog.ChangeBlock:
         if not self._changelog:
             self.lint_error("missing context for changelog entry")
+        assert self._changelog is not None
+
         return self._changelog[0]
 
     @property

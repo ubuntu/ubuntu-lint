@@ -3,7 +3,7 @@ import os
 import sys
 import ubuntu_lint
 
-from typing import Callable
+from typing import Callable, Sequence, Any
 
 
 class Runner:
@@ -48,10 +48,14 @@ class Runner:
             name: "auto" for name in self._checks_by_name.keys()
         }
 
+        self.changes_file: str | None = None
+        self.debian_changelog: str | None = None
+        self.source_dir: str = ""
+
     def set_linter(
         self,
         name: str,
-        fn: Callable[ubuntu_lint.Context, []],
+        fn: Callable[[ubuntu_lint.Context], None],
         failure_action: str,
     ) -> None:
         """Configure a linter on the runner."""
@@ -115,12 +119,13 @@ class Runner:
 class ActionConfigureLinter(argparse.Action):
     def __call__(
         self,
-        parser,
-        namespace,
-        values,
-        option_string,
-    ):
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
+    ) -> None:
         # '--linter-name' -> 'linter-name'
+        assert option_string is not None
         name = option_string.lstrip("-")
         namespace.set_linter(name, namespace.all_linters[name], values)
 
