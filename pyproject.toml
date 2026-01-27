@@ -26,3 +26,6 @@ pytest = "^9.0.2"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+disable_error_code = ["import-untyped"]
