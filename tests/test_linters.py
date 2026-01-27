@@ -2,7 +2,7 @@ import copy
 import pytest
 import ubuntu_lint
 
-from debian import deb822
+from debian import deb822, changelog
 
 basic_changes_no_ubuntu_delta = deb822.Changes("""
 Format: 1.8
@@ -129,4 +129,31 @@ def test_check_missing_git_ubuntu_references(requests_mock):
     with pytest.raises(ubuntu_lint.LintFailure):
         ubuntu_lint.check_missing_git_ubuntu_references(
             ubuntu_lint.Context(changes=changes_missing_git_ubuntu_refs)
+        )
+
+
+def test_check_missing_bug_references():
+    dch = changelog.Changelog(file="""
+hello (2.10-5ubuntu1) resolute; urgency=medium
+
+  * Testing (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
+    ubuntu_lint.check_missing_bug_references(
+        context=ubuntu_lint.Context(debian_changelog=dch)
+    )
+
+    dch = changelog.Changelog(file="""
+hello (2.10-5ubuntu1) resolute; urgency=medium
+
+  * Testing
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
+    with pytest.raises(ubuntu_lint.LintFailure):
+        ubuntu_lint.check_missing_bug_references(
+            context=ubuntu_lint.Context(debian_changelog=dch)
         )
