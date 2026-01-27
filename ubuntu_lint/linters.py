@@ -13,10 +13,10 @@ def check_missing_ubuntu_maintainer(context: Context):
     """
     ubuntu_devel = "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>"
 
-    if "ubuntu" not in context.changes.get("Version"):
+    if "ubuntu" not in context.changes.get_as_string("Version"):
         return
 
-    if context.changes.get("Maintainer") != ubuntu_devel:
+    if context.changes.get_as_string("Maintainer") != ubuntu_devel:
         context.lint_fail(f"Maintainer field is not set to {ubuntu_devel}")
 
 
@@ -105,7 +105,7 @@ def check_missing_pending_changelog_entry(context: Context):
         return
 
     # Mangle the Changes field so that we can parse it like a changelog.
-    s = context.changes.get("Changes")
+    s = context.changes.get_as_string("Changes")
     s = s.replace(f"\n .\n {package}", f"\n  --\n {package}")
     s = s + "\n  --\n"
     lines = ["" if v == " ." else v[1:] for v in s.splitlines()]
