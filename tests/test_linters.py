@@ -157,3 +157,30 @@ hello (2.10-5ubuntu1) resolute; urgency=medium
         ubuntu_lint.check_missing_bug_references(
             context=ubuntu_lint.Context(debian_changelog=dch)
         )
+
+
+def test_check_distribution_invalid():
+    dch = changelog.Changelog(file="""
+hello (2.10-5ubuntu1) resolute; urgency=medium
+
+  * Testing (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
+    ubuntu_lint.check_distribution_invalid(
+        context=ubuntu_lint.Context(debian_changelog=dch)
+    )
+
+    dch = changelog.Changelog(file="""
+hello (2.10-5ubuntu1) uffda; urgency=medium
+
+  * Testing (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
+    with pytest.raises(ubuntu_lint.LintFailure):
+        ubuntu_lint.check_distribution_invalid(
+            context=ubuntu_lint.Context(debian_changelog=dch)
+        )
