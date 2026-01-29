@@ -1,0 +1,5 @@
+{
+    "description": "check if Ubuntu changes are missing git-ubuntu references",
+    "path": "ubuntu_lint.dput.dput_missing_git_ubuntu_references",
+    "pre": true
+}
