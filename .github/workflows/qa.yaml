@@ -1,0 +1,63 @@
+on: [push, pull_request]
+name: QA
+jobs:
+  black:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.14'
+    - name: apt update
+      run: sudo apt update
+    - name: apt install
+      run: sudo apt install python3-poetry
+    - name: poetry install
+      run: poetry install
+    - name: pytest
+      run: poetry run black --diff .
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.14'
+    - name: apt update
+      run: sudo apt update
+    - name: apt install
+      run: sudo apt install python3-poetry
+    - name: poetry install
+      run: poetry install
+    - name: pytest
+      run: poetry run flake8 --ignore E501
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.14'
+    - name: apt update
+      run: sudo apt update
+    - name: apt install
+      run: sudo apt install python3-poetry
+    - name: poetry install
+      run: poetry install
+    - name: pytest
+      run: poetry run mypy --check-untyped-defs .
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.14'
+    - name: apt update
+      run: sudo apt update
+    - name: apt install
+      run: sudo apt install python3-poetry distro-info-data
+    - name: poetry install
+      run: poetry install
+    - name: pytest
+      run: poetry run pytest --verbose
