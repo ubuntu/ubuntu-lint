@@ -1,0 +1,5 @@
+{
+    "description": "check if Ubuntu changes are missing Launchpad-Bugs-Fixed",
+    "path": "ubuntu_lint.dput.dput_missing_launchpad_bugs_fixed",
+    "pre": true
+}

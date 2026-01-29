@@ -1,0 +1,5 @@
+{
+    "description": "check if SRU bugs are missing the template",
+    "path": "ubuntu_lint.dput.dput_sru_bug_missing_template",
+    "pre": true
+}

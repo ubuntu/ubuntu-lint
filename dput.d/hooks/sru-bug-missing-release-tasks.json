@@ -1,0 +1,5 @@
+{
+    "description": "check if SRU bugs are missing the correct release tasks",
+    "path": "ubuntu_lint.dput.dput_sru_bug_missing_release_tasks",
+    "pre": true
+}
