@@ -1,0 +1,2 @@
+ubuntu-lint usr/bin
+dput.d/* etc/dput.d/
