@@ -1,0 +1,51 @@
+Source: ubuntu-lint
+Section: devel
+Priority: optional
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-sequence-python3,
+ pybuild-plugin-pyproject,
+ python3-all,
+ python3-debian,
+ python3-distro-info,
+ python3-dput,
+ python3-launchpadlib,
+ python3-poetry,
+ python3-pytest,
+ python3-requests,
+ python3-requests-mock,
+Standards-Version: 4.7.2
+Homepage: https://github.com/ubuntu/ubuntu-lint
+Vcs-Git: https://github.com/ubuntu/ubuntu-lint.git
+
+Package: ubuntu-lint
+Architecture: all
+Depends:
+ ${misc:Depends},
+ ${python3:Depends},
+ python3-ubuntu-lint (= ${binary:Version}),
+Description: linter for Ubuntu packaging workflows
+ ubuntu-lint is a CLI linter for Ubuntu packaging. It operates on source
+ packages, and is designed to be used by uploaders and reviewers alike.
+ .
+ ubuntu-lint supplements existing tools like lintian, and defines additional
+ checks for Ubuntu-specific processes such as Stable Release Updates (SRUs).
+ .
+ This package includes the ubuntu-lint CLI, and dput-ng hooks.
+
+Package: python3-ubuntu-lint
+Architecture: all
+Section: python
+Depends:
+ ${misc:Depends},
+ ${python3:Depends},
+Description: linter for Ubuntu packaging workflows (Python3 Library)
+ ubuntu-lint is a CLI linter for Ubuntu packaging. It operates on source
+ packages, and is designed to be used by uploaders and reviewers alike.
+ .
+ ubuntu-lint supplements existing tools like lintian, and defines additional
+ checks for Ubuntu-specific processes such as Stable Release Updates (SRUs).
+ .
+ This package can be integrated with other tools like dput-ng (via hooks), and
+ is used to implement the ubuntu-lint CLI tool.
