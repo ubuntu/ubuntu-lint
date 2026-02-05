@@ -185,7 +185,3 @@ def main():
 
     if not runner.run(context):
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
