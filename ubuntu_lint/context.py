@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import distro_info
+import os
 
 from debian import deb822, changelog
 from launchpadlib.launchpad import Launchpad
@@ -28,7 +29,15 @@ class Context:
         changes: str | deb822.Changes | None = None,
         debian_changelog: str | changelog.Changelog | None = None,
         launchpad_handle: Launchpad | None = None,
+        source_dir: str | None = None,
     ):
+        self._source_dir: str | None = None
+        if source_dir:
+            self.source_dir = source_dir
+
+            if debian_changelog is None:
+                debian_changelog = os.path.join(self.source_dir, "debian/changelog")
+
         self._changes: deb822.Changes | None = None
         if isinstance(changes, str):
             with open(changes, "r") as f:
@@ -80,6 +89,21 @@ class Context:
             self._lp = Launchpad.login_anonymously("ubuntu-lint", "production")
 
         return self._lp
+
+    @property
+    def source_dir(self) -> str:
+        if not self._source_dir:
+            self.lint_error("missing context for source dir")
+        assert self._source_dir is not None
+
+        return self._source_dir
+
+    @source_dir.setter
+    def source_dir(self, source_dir: str):
+        if not os.path.isdir(os.path.join(source_dir, "debian")):
+            raise ValueError(f"{source_dir} does not look like a debian source package")
+
+        self._source_dir = source_dir
 
     def lint_fail(self, msg: str):
         raise LintFailure(msg)

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import argparse
-import os
 import sys
 import ubuntu_lint
 
@@ -56,7 +55,7 @@ class Runner:
 
         self.changes_file: str | None = None
         self.debian_changelog: str | None = None
-        self.source_dir: str = ""
+        self.source_dir: str = "."
 
     def set_linter(
         self,
@@ -151,7 +150,6 @@ def main():
         "--source-dir",
         help="Path to debian source package",
         type=str,
-        default=".",
     )
     context_args.add_argument(
         "--debian-changelog",
@@ -178,10 +176,8 @@ def main():
 
     runner = parser.parse_args(namespace=Runner())
 
-    if runner.debian_changelog is None:
-        runner.debian_changelog = os.path.join(runner.source_dir, "debian/changelog")
-
     context = ubuntu_lint.Context(
+        source_dir=runner.source_dir,
         debian_changelog=runner.debian_changelog,
         changes=runner.changes_file,
     )
