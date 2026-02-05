@@ -66,8 +66,8 @@ class Runner:
                 del self._action_by_name[name]
             except KeyError:
                 pass
-            finally:
-                return
+
+            return
 
         self._checks_by_name[name] = fn
         self._action_by_name[name] = failure_action
