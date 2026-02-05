@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+
+# Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: GPL-3.0-only
+
+from ubuntu_lint.cli import main
+
+if __name__ == "__main__":
+    main()
