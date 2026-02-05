@@ -51,6 +51,7 @@ class Context:
         if not any((self._changes, self._changelog)):
             raise ValueError("context requires at least one of changes or changelog")
 
+        self._lp: Launchpad | None = None
         if launchpad_handle is not None:
             self._lp = launchpad_handle
 
