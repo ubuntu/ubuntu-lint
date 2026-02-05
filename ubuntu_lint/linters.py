@@ -1,3 +1,6 @@
+# Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: GPL-3.0-only
+
 import distro_info
 import re
 import requests
