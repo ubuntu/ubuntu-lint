@@ -51,6 +51,7 @@ class Context:
         if not any((self._changes, self._changelog)):
             raise ValueError("context requires at least one of changes or changelog")
 
+        self._lp: Launchpad | None = None
         if launchpad_handle is not None:
             self._lp = launchpad_handle
 
@@ -95,4 +96,7 @@ class Context:
         else:
             raise ValueError("missing required context, require changelog or changes")
 
-        return dist in distro_info.UbuntuDistroInfo().supported()
+        di = distro_info.UbuntuDistroInfo()
+        stable = set(di.supported() + di.supported_esm()) - set([di.devel()])
+
+        return dist in stable
