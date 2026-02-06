@@ -71,11 +71,16 @@ def check_missing_git_ubuntu_references(context: Context):
     if missing:
         context.lint_fail("changes file is missing {}".format(", ".join(missing)))
 
-    r = requests.get(f"{vcs_git}/patch/?h={vcs_git_ref}")
-    if r.ok and r.text.startswith(f"From {vcs_git_commit} "):
-        return
+    url = f"{vcs_git}/patch/?h={vcs_git_ref}"
+    r = requests.get(url)
+    if not r.ok:
+        if r.status_code == 404:
+            context.lint_fail(f"{url} does not exist")
+        else:
+            context.lint_fail(f"failed to check {url} (status_code={r.status_code})")
 
-    context.lint_fail("Vcs-Git fields in changes file do not match the remote")
+    if not r.text.startswith(f"From {vcs_git_commit} "):
+        context.lint_fail("Vcs-Git fields in changes file do not match the remote")
 
 
 def check_missing_pending_changelog_entry(context: Context):
