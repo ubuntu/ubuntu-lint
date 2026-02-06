@@ -96,4 +96,7 @@ class Context:
         else:
             raise ValueError("missing required context, require changelog or changes")
 
-        return dist in distro_info.UbuntuDistroInfo().supported()
+        di = distro_info.UbuntuDistroInfo()
+        stable = set(di.supported() + di.supported_esm()) - set([di.devel()])
+
+        return dist in stable
