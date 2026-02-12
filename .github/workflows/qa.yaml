@@ -8,10 +8,7 @@ jobs:
     - uses: actions/setup-python@v6
       with:
         python-version: '3.14'
-    - name: apt update
-      run: sudo apt update
-    - name: apt install
-      run: sudo apt install python3-poetry
+    - uses: snok/install-poetry@v1
     - name: poetry install
       run: poetry install
     - name: pytest
@@ -23,10 +20,7 @@ jobs:
     - uses: actions/setup-python@v6
       with:
         python-version: '3.14'
-    - name: apt update
-      run: sudo apt update
-    - name: apt install
-      run: sudo apt install python3-poetry
+    - uses: snok/install-poetry@v1
     - name: poetry install
       run: poetry install
     - name: pytest
@@ -38,10 +32,7 @@ jobs:
     - uses: actions/setup-python@v6
       with:
         python-version: '3.14'
-    - name: apt update
-      run: sudo apt update
-    - name: apt install
-      run: sudo apt install python3-poetry
+    - uses: snok/install-poetry@v1
     - name: poetry install
       run: poetry install
     - name: pytest
@@ -53,10 +44,7 @@ jobs:
     - uses: actions/setup-python@v6
       with:
         python-version: '3.14'
-    - name: apt update
-      run: sudo apt update
-    - name: apt install
-      run: sudo apt install python3-poetry distro-info-data
+    - uses: snok/install-poetry@v1
     - name: poetry install
       run: poetry install
     - name: pytest
