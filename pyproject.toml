@@ -7,12 +7,12 @@ authors = [
 ]
 readme = "README.md"
 dependencies = [
-    "python (>=3.12)",
     "python-debian (>=1.0.1)",
     "requests (>=2.32.5)",
     "distro-info (>=1.0)",
     "launchpadlib (>=2.1.0)",
 ]
+requires-python = ">=3.10"
 
 [tool.poetry.group.dev.dependencies]
 black = "^26.1.0"
