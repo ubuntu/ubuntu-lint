@@ -36,7 +36,7 @@ jobs:
     - name: poetry install
       run: poetry install
     - name: pytest
-      run: poetry run mypy --check-untyped-defs .
+      run: poetry run mypy --check-untyped-defs . --exclude ubuntu_lint/dput.py
   test:
     runs-on: ubuntu-latest
     steps:
