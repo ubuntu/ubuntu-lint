@@ -1,3 +1,6 @@
+# Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: GPL-3.0-only
+
 from .context import Context, LintFailure
 from .linters import (
     check_missing_ubuntu_maintainer,

@@ -1,0 +1,10 @@
+{
+    "+hooks": [
+        "missing-git-ubuntu-references",
+        "missing-launchpad-bugs-fixed",
+        "missing-pending-changelog-entry",
+        "missing-ubuntu-maintainer",
+        "sru-bug-missing-release-tasks",
+        "sru-bug-missing-template"
+    ]
+}

@@ -1,3 +1,6 @@
+# Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: GPL-3.0-only
+
 import argparse
 import os
 import sys
@@ -182,7 +185,3 @@ def main():
 
     if not runner.run(context):
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
