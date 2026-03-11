@@ -5,6 +5,7 @@
         "missing-pending-changelog-entry",
         "missing-ubuntu-maintainer",
         "sru-bug-missing-release-tasks",
-        "sru-bug-missing-template"
+        "sru-bug-missing-template",
+        "sru-version-string-breaks-upgrades"
     ]
 }

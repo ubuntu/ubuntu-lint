@@ -113,3 +113,18 @@ def dput_sru_bug_missing_release_tasks(
         interface,
         can_ignore=True,
     )
+
+
+def dput_sru_version_string_breaks_upgrades(
+    changes: Changes, profile: dict, interface: CLInterface
+):
+    """
+    Hook wrapper around ubuntu_lint.check_sru_version_string_breaks_upgrades.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_sru_version_string_breaks_upgrades,
+        changes,
+        profile,
+        interface,
+        can_ignore=True,
+    )

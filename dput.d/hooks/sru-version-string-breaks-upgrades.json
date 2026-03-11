@@ -1,0 +1,5 @@
+{
+    "description": "check if the version string breaks upgrades",
+    "path": "ubuntu_lint.dput.dput_sru_version_string_breaks_upgrades",
+    "pre": true
+}
