@@ -4,6 +4,7 @@
 import copy
 import pytest
 import ubuntu_lint
+import textwrap
 
 from debian import deb822, changelog
 
@@ -69,6 +70,37 @@ Original-Maintainer: Santiago Vila <sanvila@debian.org>
 Vcs-Git: https://git.launchpad.net/~ubuntu-core-dev/ubuntu/+source/hello
 Vcs-Git-Commit: 6e591bb3a2bbc44dcb6f49499dc7dbee400ce5b9
 Vcs-Git-Ref: refs/heads/testing
+""")
+
+basic_changes_sru = deb822.Changes("""
+Format: 1.8
+Date: Wed, 11 Mar 2026 16:01:41 -0400
+Source: hello
+Built-For-Profiles: noudeb
+Architecture: source
+Version: 2.10-3ubuntu0.1
+Distribution: noble
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: John Doe <john.doe@example.com>
+Launchpad-Bugs-Fixed: 12345678
+Changes:
+ hello (2.10-3ubuntu0.1) noble; urgency=medium
+ .
+   * Fix a bug (LP: #12345678)
+Checksums-Sha1:
+ f69ac22584593891440e320777ccb038568c6809 1298 hello_2.10-3ubuntu0.1.dsc
+ 5eea7226f111d7a874b0b2a7d4586dee3bb9707a 12876 hello_2.10-3ubuntu0.1.debian.tar.xz
+ d503db0bad6eb221f1cb96d8fea3d396dc4c2e01 6025 hello_2.10-3ubuntu0.1_source.buildinfo
+Checksums-Sha256:
+ fe698e4496f18a6575fdbb2bc79bd97289b26d1838da88271f285b9c2a625d84 1298 hello_2.10-3ubuntu0.1.dsc
+ 37df32119bebf1af5ae8cd793f85a712233b1a5e055d0a517c3a483074255735 12876 hello_2.10-3ubuntu0.1.debian.tar.xz
+ 03c853b26f1fe5d8ec43831462ceea0d714e0b77f1f253909419f8dc1667c449 6025 hello_2.10-3ubuntu0.1_source.buildinfo
+Files:
+ 1d4d7dc915ed16973febc95ae80d73ed 1298 devel optional hello_2.10-3ubuntu0.1.dsc
+ 2be6a13bd3827fa7a051fb1b52d37672 12876 devel optional hello_2.10-3ubuntu0.1.debian.tar.xz
+ 2b095557f297d3f85e85a72363dd1019 6025 devel optional hello_2.10-3ubuntu0.1_source.buildinfo
+Original-Maintainer: Santiago Vila <sanvila@debian.org>
 """)
 
 
@@ -186,4 +218,35 @@ hello (2.10-5ubuntu1) uffda; urgency=medium
     with pytest.raises(ubuntu_lint.LintFailure):
         ubuntu_lint.check_distribution_invalid(
             context=ubuntu_lint.Context(debian_changelog=dch)
+        )
+
+
+def test_check_sru_version_string_breaks_upgrades(requests_mock):
+    package = basic_changes_sru.get("Source")
+
+    requests_mock.get(
+        f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on",
+        text=textwrap.dedent(
+            """hello | 2.8-4         | trusty          | source
+               hello | 2.10-1        | xenial          | source
+               hello | 2.10-1build1  | bionic          | source
+               hello | 2.10-1build3  | bionic-security | source
+               hello | 2.10-1build3  | bionic-updates  | source
+               hello | 2.10-2ubuntu2 | focal           | source
+               hello | 2.10-2ubuntu4 | jammy           | source
+               hello | 2.10-3build1  | noble           | source
+               hello | 2.10-5        | questing        | source
+               hello | 2.10-5build1  | resolute        | source
+        """)
+    )
+    ubuntu_lint.check_sru_version_string_breaks_upgrades(
+        ubuntu_lint.Context(changes=basic_changes_sru)
+    )
+
+    # Simulate a version bump in noble that is greater than questing.
+    changes_bad_version = copy.deepcopy(basic_changes_sru)
+    changes_bad_version["Version"] = "2.10-5ubuntu0.1"
+    with pytest.raises(ubuntu_lint.LintFailure):
+        ubuntu_lint.check_sru_version_string_breaks_upgrades(
+            ubuntu_lint.Context(changes=changes_bad_version)
         )

@@ -5,8 +5,8 @@ import distro_info
 import re
 import requests
 
-from debian import changelog
-from ubuntu_lint import Context
+from debian import changelog, debian_support
+from ubuntu_lint import Context, MissingContextException
 
 
 def check_missing_ubuntu_maintainer(context: Context):
@@ -200,3 +200,78 @@ def check_sru_bug_missing_release_tasks(context: Context):
                 ", ".join(warn), "is" if len(warn) == 1 else "are", dist
             )
         )
+
+
+def _rmadision_get_max_version_by_series(context: Context) -> dict[str, str]:
+    """
+    Construct a map of series -> highest version (excluding -backports). This can then
+    be used to compare the target version against all newer releases, to ensure it
+    sorts before them.
+    """
+    try:
+        package = context.changes.get("Source")
+    except MissingContextException:
+        package = context.changelog_entry.package
+
+    url = f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on"
+
+    r = requests.get(url)
+    if not r.ok:
+        if r.status_code == 404:
+            context.lint_fail(f"{url} does not exist")
+        else:
+            context.lint_fail(f"failed to check {url} (status_code={r.status_code})")
+
+    max_version_by_series: dict[str, str] = {}
+    for line in r.text.splitlines():
+        # An rmadision line is formatted like:
+        # <source_package> | <version> | <suite> | source
+        values = [c.strip() for c in line.split("|")]
+
+        if len(values) < 4:
+            context.lint_fail(f"Unexpected line from rmadison: {line}")
+
+        version = values[1]
+        suite = values[2]
+        (series, _, pocket) = suite.partition("-")
+
+        if pocket == "backports":
+            # Exclude -backports, as different rules apply.
+            continue
+
+        try:
+            if debian_support.version_compare(version, max_version_by_series[series]) > 0:
+                max_version_by_series[series] = version
+        except KeyError:
+            max_version_by_series[series] = version
+
+    return max_version_by_series
+
+
+def check_sru_version_string_breaks_upgrades(context: Context):
+    """
+    Examines the package version string, and the package version string in all
+    series (from the target series through the development series), to ensure
+    the ordering is correct.
+    """
+    max_version_by_series = _rmadision_get_max_version_by_series(context)
+
+    target_version = context.changes.get("Version")
+    target_series = context.changes.get("Distribution", "").partition("-")[0]
+
+    if target_series not in max_version_by_series.keys():
+        context.lint_fail(f"{target_series} is not know by rmadison")
+
+    try:
+        compare_series = [d for d in distro_info.UbuntuDistroInfo().get_all() if d in max_version_by_series]
+        index = compare_series.index(target_series)
+    except ValueError:
+        context.lint_fail(f"{target_series} is not known by distro-info")
+
+    for s in compare_series[index + 1:]:
+        v = max_version_by_series[s]
+        if debian_support.version_compare(target_version, v) > 0:
+            context.lint_fail(
+                f"{target_version} for {target_series} is greater than {v} for {s}, "
+                "which breaks the upgrade path"
+            )
