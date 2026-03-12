@@ -52,6 +52,7 @@ class Runner:
         self._action_by_name: dict = {
             name: "auto" for name in self._checks_by_name.keys()
         }
+        self._results: dict[str, list[tuple[str, str]]] = {}
 
         self.changes_file: str | None = None
         self.debian_changelog: str | None = None
@@ -79,7 +80,6 @@ class Runner:
 
     def run(self, context: ubuntu_lint.Context) -> int:
         """Run the configured linters with the given context."""
-
         ret = 0
 
         if context.is_stable_release():
@@ -104,21 +104,58 @@ class Runner:
             if failure_action not in ("warn", "fail"):
                 raise ValueError(f'invalid failure action "{failure_action}"')
 
-            print(f"Running {name}...", end="")
-
+            result: str = "OK"
+            msg: str = ""
+            print(f"Running {name}...", end="", flush=True)
             try:
                 fn(context)
-                print("OK")
             except ubuntu_lint.LintFailure as e:
-                print(f"[{failure_action}] {name}: {e}")
-
+                result = failure_action.upper()
+                msg = str(e)
                 if failure_action == "fail" and ret <= 0:
                     ret = 1
             except RuntimeError as e:
-                print(f"[error] {name}: {e}")
+                result = "ERROR"
+                msg = str(e)
                 ret = 2
 
+            try:
+                self._results[result].append((name, msg))
+            except KeyError:
+                self._results[result] = [(name, msg)]
+
+            print(result)
+
+        self.print_summary()
+
         return ret
+
+    def print_summary(self):
+        ran = 0
+
+        # Print failure details
+        for mode, results in self._results.items():
+            num = len(results)
+            ran += num
+
+            if mode == "OK" or num == 0:
+                continue
+
+            if num == 1:
+                print(f"\n{mode}: 1 issue")
+            else:
+                print(f"\n{mode}: {num} issues")
+
+            for (name, msg) in results:
+                print(f"    {name}: {msg}")
+
+        stats = []
+        for mode in ("OK", "FAIL", "WARN", "ERROR"):
+            num = len(self._results.get(mode, []))
+            stats.append(f"{mode}: {num}")
+        short = ", ".join(stats)
+
+        print(f"\nSummary: ran {ran} lint checks ({short})")
 
 
 class ActionConfigureLinter(argparse.Action):
@@ -182,5 +219,4 @@ def main():
         changes=runner.changes_file,
     )
 
-    if not runner.run(context):
-        sys.exit(1)
+    sys.exit(runner.run(context))
