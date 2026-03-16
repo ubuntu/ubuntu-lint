@@ -18,6 +18,15 @@ class LintFailure(Exception):
     pass
 
 
+class MissingContextException(Exception):
+    """
+    This exception is raised when a linter tries to use context (e.g. changelog or
+    changes file), but it is not initialized for this Context instance.
+    """
+
+    pass
+
+
 class Context:
     """
     A class to encapsulate the context of a source package, or package upload
@@ -70,7 +79,7 @@ class Context:
     @property
     def changes(self) -> deb822.Changes:
         if not self._changes:
-            self.lint_error("missing context for changes file")
+            raise MissingContextException("missing context for changes file")
         assert self._changes is not None
 
         return self._changes
@@ -78,7 +87,7 @@ class Context:
     @property
     def changelog_entry(self) -> changelog.ChangeBlock:
         if not self._changelog:
-            self.lint_error("missing context for changelog entry")
+            raise MissingContextException("missing context for changelog entry")
         assert self._changelog is not None
 
         return self._changelog[0]
@@ -93,7 +102,7 @@ class Context:
     @property
     def source_dir(self) -> str:
         if not self._source_dir:
-            self.lint_error("missing context for source dir")
+            raise MissingContextException("missing context for source dir")
         assert self._source_dir is not None
 
         return self._source_dir
@@ -107,9 +116,6 @@ class Context:
 
     def lint_fail(self, msg: str):
         raise LintFailure(msg)
-
-    def lint_error(self, msg: str):
-        raise RuntimeError(msg)
 
     def is_stable_release(self) -> bool:
         """
