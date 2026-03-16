@@ -114,10 +114,14 @@ class Runner:
                 msg = str(e)
                 if failure_action == "fail" and ret <= 0:
                     ret = 1
-            except RuntimeError as e:
-                result = "ERROR"
+            except ubuntu_lint.MissingContextException as e:
+                if self._action_by_name[name] == "auto":
+                    result = "SKIP"
+                else:
+                    result = "ERROR"
+                    ret = 2
+
                 msg = str(e)
-                ret = 2
 
             try:
                 self._results[result].append((name, msg))
@@ -150,7 +154,7 @@ class Runner:
                 print(f"    {name}: {msg}")
 
         stats = []
-        for mode in ("OK", "FAIL", "WARN", "ERROR"):
+        for mode in ("OK", "FAIL", "WARN", "ERROR", "SKIP"):
             num = len(self._results.get(mode, []))
             stats.append(f"{mode}: {num}")
         short = ", ".join(stats)
