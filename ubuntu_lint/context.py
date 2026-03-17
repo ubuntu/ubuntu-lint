@@ -84,13 +84,16 @@ class Context:
 
         return self._changes
 
-    @property
-    def changelog_entry(self) -> changelog.ChangeBlock:
+    def changelog_entry_by_index(self, index: int) -> changelog.ChangeBlock:
         if not self._changelog:
             raise MissingContextException("missing context for changelog entry")
         assert self._changelog is not None
 
-        return self._changelog[0]
+        return self._changelog[index]
+
+    @property
+    def changelog_entry(self) -> changelog.ChangeBlock:
+        return self.changelog_entry_by_index(0)
 
     @property
     def lp(self) -> Launchpad:
