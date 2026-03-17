@@ -57,6 +57,7 @@ class Runner:
         self.changes_file: str | None = None
         self.debian_changelog: str | None = None
         self.source_dir: str = "."
+        self.verbose: bool = False
 
     def set_linter(
         self,
@@ -145,6 +146,9 @@ class Runner:
             if mode == "OK" or num == 0:
                 continue
 
+            if mode == "SKIP" and not self.verbose:
+                continue
+
             if num == 1:
                 print(f"\n{mode}: 1 issue")
             else:
@@ -180,6 +184,11 @@ def main():
     parser = argparse.ArgumentParser(
         prog="ubuntu-lint",
         description="Lint checker for Ubuntu package uploads",
+    )
+    parser.add_argument(
+        "--verbose",
+        help="Verbose output",
+        action="store_true",
     )
 
     context_args = parser.add_argument_group(
