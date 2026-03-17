@@ -155,9 +155,9 @@ def check_sru_bug_missing_template(context: Context):
             context.lint_fail(f"bug {n} does not exist or is not public")
 
         for section in ("impact", "test plan", "where problems could occur"):
-            if not re.match(rf"\[{section}\]", desc, re.I):
+            if not re.search(rf"\[\s*{section}\s*\]", desc.lower()):
                 context.lint_fail(
-                    f"bug {n} description is missing the [{section}] section"
+                    f"bug {n} description is missing the [{section.title()}] section"
                     ", see: https://documentation.ubuntu.com/project/SRU/"
                     "reference/bug-template/#reference-sru-bug-template"
                 )
