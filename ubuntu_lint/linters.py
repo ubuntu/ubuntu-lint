@@ -121,7 +121,7 @@ def check_missing_pending_changelog_entry(context: Context):
     ch = changelog.Changelog(lines, allow_empty_author=True)
     changes_versions = set([str(v) for v in ch.get_versions()])
 
-    if pending_versions > changes_versions:
+    if not pending_versions <= changes_versions:
         # The versions listed in the changes file is not a superset
         # of the pending versions according to Launchpad.
         missing_versions = ",".join(pending_versions - changes_versions)
