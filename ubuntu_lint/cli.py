@@ -19,6 +19,7 @@ class Runner:
         "sru-bug-missing-template": ubuntu_lint.check_sru_bug_missing_template,
         "sru-bug-missing-release-tasks": ubuntu_lint.check_sru_bug_missing_release_tasks,
         "sru-version-string-breaks-upgrades": ubuntu_lint.check_sru_version_string_breaks_upgrades,
+        "sru-version-string-convention": ubuntu_lint.check_sru_version_string_convention,
     }
 
     # Default actions when linting development release.
@@ -32,6 +33,7 @@ class Runner:
         "sru-bug-missing-template": "off",
         "sru-bug-missing-release-tasks": "off",
         "sru-version-string-breaks-upgrades": "off",
+        "sru-version-string-convention": "off",
     }
 
     # Default actions when linting stable releases.
@@ -45,6 +47,7 @@ class Runner:
         "sru-bug-missing-template": "warn",
         "sru-bug-missing-release-tasks": "warn",
         "sru-version-string-breaks-upgrades": "warn",
+        "sru-version-string-convention": "warn",
     }
 
     def __init__(self):

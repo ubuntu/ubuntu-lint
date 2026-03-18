@@ -250,3 +250,152 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
         ubuntu_lint.check_sru_version_string_breaks_upgrades(
             ubuntu_lint.Context(changes=changes_bad_version)
         )
+
+
+def test_check_sru_version_string_convention(requests_mock):
+    changelog_tmpl = """hello ({next_version}) noble; urgency=medium
+
+  * Fix a bug (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Wed, 11 Mar 2026 16:01:41 -0400
+
+hello ({prev_version}) noble; urgency=high
+
+  * No change rebuild for 64-bit time_t and frame pointers.
+
+ -- John Doe <john.doe@example.com>  Mon, 08 Apr 2024 17:58:52 +0200
+"""
+
+    rmadison_tmpls = [
+        textwrap.dedent(
+            """hello | 2.8-4         | trusty          | source
+               hello | 2.10-1        | xenial          | source
+               hello | 2.10-1build1  | bionic          | source
+               hello | 2.10-1build3  | bionic-security | source
+               hello | 2.10-1build3  | bionic-updates  | source
+               hello | 2.10-2ubuntu2 | focal           | source
+               hello | 2.10-2ubuntu4 | jammy           | source
+               hello | {prev_version}| noble           | source
+               hello | 2.10-5        | questing        | source
+               hello | 2.10-5build1  | resolute        | source
+        """),
+        # Same version in two releases
+        textwrap.dedent(
+            """hello | 2.8-4         | trusty          | source
+               hello | 2.10-1        | xenial          | source
+               hello | 2.10-1build1  | bionic          | source
+               hello | 2.10-1build3  | bionic-security | source
+               hello | 2.10-1build3  | bionic-updates  | source
+               hello | 2.10-2ubuntu2 | focal           | source
+               hello | 2.10-2ubuntu4 | jammy           | source
+               hello | {prev_version}| noble           | source
+               hello | {prev_version}| questing        | source
+               hello | 2.10-5build1  | resolute        | source
+        """),
+    ]
+
+    # (prev_version, next_version, expect_pass)
+    testcases_list = [
+        [
+            # 2.10-3 -> "2.10-3ubuntu0.1"
+            ("2.10-3", "2.10-3ubuntu0.1", True),
+            ("2.10-3", "2.10-3ubuntu1", False),
+            ("2.10-3", "2.10-4", False),
+            # 2.10-3ubuntu0.1 -> "2.10-3ubuntu0.2"
+            ("2.10-3ubuntu0.1", "2.10-3ubuntu0.2", True),
+            ("2.10-3ubuntu0.1", "2.10-3ubuntu1", False),
+            # 2.10-3ubuntu2 -> "2.10-3ubuntu2.1"
+            ("2.10-3ubuntu2", "2.10-3ubuntu2.1", True),
+            ("2.10-3ubuntu2", "2.10-3ubuntu3", False),
+            # 2.10-3ubuntu2.1 -> "2.10-3ubuntu2.2"
+            ("2.10-3ubuntu2.1", "2.10-3ubuntu2.2", True),
+            ("2.10-3ubuntu2.1", "2.10-3ubuntu3", False),
+            # 2.10-3build1 -> 2.10-3ubuntu0.1
+            ("2.10-3build1", "2.10-3ubuntu0.1", True),
+            ("2.10-3build1", "2.10-3build2", False),
+            ("2.10-3build1", "2.10-3ubuntu1", False),
+            # 2.10-3ubuntu0.24.04.1 -> 2.10-3ubuntu0.24.04.2
+            ("2.10-3ubuntu0.24.04.1", "2.10-3ubuntu0.24.04.2", True),
+            ("2.10-3ubuntu0.24.04.1", "2.10-3ubuntu1", False),
+        ],
+        [
+            # 2.10-5 in two releases -> 2.10-5ubuntu0.24.04.1
+            ("2.10-5", "2.10-5ubuntu0.24.04.1", True),
+            ("2.10-5", "2.10-5ubuntu0.1", False),
+            ("2.10-5", "2.10-5ubuntu1", False),
+            ("2.10-5", "2.10-6", False),
+            # 2.10-5build1 in two releases -> 2.10-5ubuntu0.24.04.1
+            ("2.10-5build1", "2.10-5ubuntu0.24.04.1", True),
+            ("2.10-5build1", "2.10-5ubuntu0.1", False),
+            ("2.10-5build1", "2.10-5ubuntu1", False),
+            ("2.10-5build1", "2.10-5build2", False),
+            # 2.10-5ubuntu1 in two releases -> 2.10-5ubuntu1.24.04.1
+            ("2.10-5ubuntu1", "2.10-5ubuntu1.24.04.1", True),
+            ("2.10-5ubuntu1", "2.10-5ubuntu1.1", False),
+            ("2.10-5ubuntu1", "2.10-5ubuntu2", False),
+            # 2.10-5ubuntu1.1 in two releases -> 2.10-5ubuntu1.1.24.04.1
+            ("2.10-5ubuntu1.1", "2.10-5ubuntu1.1.24.04.1", True),
+            ("2.10-5ubuntu1.1", "2.10-5ubuntu1.2", False),
+            ("2.10-5ubuntu1.1", "2.10-5ubuntu2", False),
+        ],
+    ]
+
+    for i in range(len(testcases_list)):
+        rmadison_tmpl = rmadison_tmpls[i]
+        testcases = testcases_list[i]
+
+        for (prev_version, next_version, expect_pass) in testcases:
+            requests_mock.get(
+                "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=hello&a=source&text=on",
+                text=rmadison_tmpl.format(prev_version=prev_version)
+            )
+            debian_changelog = changelog.Changelog(
+                changelog_tmpl.format(
+                    prev_version=prev_version,
+                    next_version=next_version,
+                )
+            )
+            context = ubuntu_lint.Context(debian_changelog=debian_changelog)
+
+            if expect_pass:
+                ubuntu_lint.check_sru_version_string_convention(context)
+            else:
+                with pytest.raises(
+                    ubuntu_lint.LintFailure,
+                    match=f"{next_version} does not match expected version"
+                ):
+                    ubuntu_lint.check_sru_version_string_convention(context)
+
+    # Test cases for new upstream version
+    testcases = [
+        # 2.10-3ubuntu1 -> 2.11-0ubuntu0.24.04.1 (new upstream)
+        ("2.10-3ubuntu1", "2.11-0ubuntu0.24.04.1", True),
+        ("2.10-3ubuntu1", "2.11-0ubuntu0.1", False),
+        # 2.10-3ubuntu1 -> 2.11-0ubuntu0~24.04.1 (new upstream)
+        ("2.10-3ubuntu1", "2.11-0ubuntu0~24.04.1", True),
+        # 2.10-3ubuntu1 -> 2.11-1ubuntu2~24.04.1 (devel backport)
+        ("2.10-3ubuntu1", "2.11-1ubuntu2~24.04.1", True),
+        ("2.10-3ubuntu1", "2.11-1ubuntu2", False),
+    ]
+
+    for (prev_version, next_version, expect_pass) in testcases:
+        requests_mock.get(
+            "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=hello&a=source&text=on",
+            text=rmadison_tmpls[0].format(prev_version=prev_version)
+        )
+        debian_changelog = changelog.Changelog(
+            changelog_tmpl.format(
+                prev_version=prev_version,
+                next_version=next_version,
+            )
+        )
+        context = ubuntu_lint.Context(debian_changelog=debian_changelog)
+
+        if expect_pass:
+            ubuntu_lint.check_sru_version_string_convention(context)
+        else:
+            with pytest.raises(
+                ubuntu_lint.LintFailure,
+                match="version string for new upstream should contain suffix"
+            ):
+                ubuntu_lint.check_sru_version_string_convention(context)

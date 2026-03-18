@@ -16,6 +16,7 @@ from .linters import (
     check_sru_bug_missing_template,
     check_sru_bug_missing_release_tasks,
     check_sru_version_string_breaks_upgrades,
+    check_sru_version_string_convention,
 )
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "check_sru_bug_missing_template",
     "check_sru_bug_missing_release_tasks",
     "check_sru_version_string_breaks_upgrades",
+    "check_sru_version_string_convention",
 ]

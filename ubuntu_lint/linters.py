@@ -275,3 +275,90 @@ def check_sru_version_string_breaks_upgrades(context: Context):
                 f"{target_version} for {target_series} is greater than {v} for {s}, "
                 "which breaks the upgrade path"
             )
+
+
+def check_sru_version_string_convention(context: Context):
+    """
+    Examines the package version string to determine if it is appropriate for SRU.
+    """
+    docs = "https://documentation.ubuntu.com/project/how-ubuntu-is-made/concepts/version-strings"
+
+    next_version = context.changelog_entry.version
+    prev_version = context.changelog_entry_by_index(1).version
+
+    try:
+        if next_version.full_version != context.changes.get("Version"):
+            context.lint_fail("changes file version does not match changelog version")
+    except MissingContextException:
+        pass
+
+    match = re.search(r"-[0-9]*", prev_version.full_version)
+    if match:
+        (upstream_version, debian_revison, ubuntu_revision) = prev_version.full_version.partition(match.group())
+    else:
+        context.lint_fail(
+            "check not implemented for native packages, "
+            f"please check {docs} to ensure version string is correct"
+        )
+
+    dists = context.changelog_entry.distributions
+    if dists is not None:
+        series_version = distro_info.UbuntuDistroInfo().version(dists.partition('-')[0])
+        # Strip off " LTS" if needed.
+        series_version = series_version.partition(' ')[0]
+    else:
+        context.lint_fail("changelog entry is missing distribution field")
+
+    if debian_support.version_compare(next_version.upstream_version, prev_version.upstream_version) > 0:
+        # Handle new upstream version separately from the rest. This check could be
+        # expanded in the future to cover more cases, but at the very least, the new
+        # version should end in e.g. 24.04.1.
+        if not next_version.full_version.endswith(f"{series_version}.1"):
+            context.lint_fail(
+                f"version string for new upstream should contain suffix {series_version}.1"
+            )
+        return
+
+    # If the previous version is published across multiple series, then we expect e.g.
+    # ubuntu24.04.x suffixes.
+    max_version_by_series = _rmadision_get_max_version_by_series(context)
+    series_with_version = list(max_version_by_series.values()).count(prev_version)
+
+    if series_with_version < 1:
+        context.lint_fail("rmadison output is not consistent with changelog")
+
+    suffix_extra: str = ""
+    if series_with_version > 1:
+        suffix_extra = f".{series_version}"
+
+    expect: str = ""
+    if not ubuntu_revision:
+        # E.g. 2.0-1 -> 2.0-1ubuntu0.1
+        expect = f"{upstream_version}{debian_revison}ubuntu0{suffix_extra}.1"
+    elif "ubuntu" not in ubuntu_revision:
+        # E.g. 2.0-1build1 -> 2.0-1ubuntu0.1
+        expect = f"{upstream_version}{debian_revison}ubuntu0{suffix_extra}.1"
+    elif "." not in ubuntu_revision:
+        # E.g. 2.0-1ubuntu1 -> 2.0-1ubuntu1.1
+        expect = f"{str(prev_version)}{suffix_extra}.1"
+    elif suffix_extra:
+        # All other cases where there multiple series with the same version.
+        expect = f"{str(prev_version)}{suffix_extra}.1"
+    else:
+        # E.g. 2.0-1ubuntu1.1 -> 2.0-1ubuntu1.2
+        try:
+            parts = ubuntu_revision.split(".")
+            parts[-1] = str(int(parts[-1]) + 1)
+            new_ubuntu_revision = ".".join(parts)
+
+            expect = f"{upstream_version}{debian_revison}{new_ubuntu_revision}"
+        except ValueError:
+            context.lint_fail(
+                f"cannot handle version string format {prev_version}"
+            )
+
+    if next_version.full_version != expect:
+        context.lint_fail(
+            f"{next_version} does not match expected version {expect}, "
+            f"see {docs} for expected version string conventions"
+        )
