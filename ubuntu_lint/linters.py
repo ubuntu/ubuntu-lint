@@ -6,7 +6,7 @@ import re
 import requests
 
 from debian import changelog, debian_support
-from ubuntu_lint import Context, MissingContextException
+from ubuntu_lint import Context
 
 
 def check_missing_ubuntu_maintainer(context: Context):
@@ -16,7 +16,7 @@ def check_missing_ubuntu_maintainer(context: Context):
     """
     ubuntu_devel = "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>"
 
-    if "ubuntu" not in context.changes.get_as_string("Version"):
+    if "ubuntu" not in str(context.get_package_version()):
         return
 
     if context.changes.get_as_string("Maintainer") != ubuntu_devel:
@@ -48,7 +48,7 @@ def check_distribution_invalid(context: Context):
     """
     Check that the debian/changelog entry uses a valid Ubuntu release name.
     """
-    dist = context.changelog_entry.distributions
+    dist = context.get_series()
     if not distro_info.UbuntuDistroInfo().valid(dist):
         context.lint_fail(f'"{dist} is not a valid Ubuntu codename')
 
@@ -92,8 +92,8 @@ def check_missing_pending_changelog_entry(context: Context):
     i.e. entries for uploads which are still in -proposed. This is a warning
     for the development release, and an error for stable releases.
     """
-    dist = context.changes.get("Distribution", "").partition("-")[0]
-    package = context.changes.get("Source")
+    dist = context.get_series()
+    package = context.get_source_package_name()
 
     lp_ubuntu = context.lp.distributions["ubuntu"]
     series = lp_ubuntu.getSeries(name_or_version=dist)
@@ -176,7 +176,7 @@ def check_sru_bug_missing_release_tasks(context: Context):
     if not bugs:
         context.lint_fail("no bug references found, cannot check for SRU template")
 
-    dist = context.changes.get("Distribution", "").partition("-")[0]
+    dist = context.get_series()
     lp_ubuntu = context.lp.distributions["ubuntu"]
     series = lp_ubuntu.getSeries(name_or_version=dist)
     series_url = str(series)
@@ -208,10 +208,7 @@ def _rmadision_get_max_version_by_series(context: Context) -> dict[str, str]:
     be used to compare the target version against all newer releases, to ensure it
     sorts before them.
     """
-    try:
-        package = context.changes.get("Source")
-    except MissingContextException:
-        package = context.changelog_entry.package
+    package = context.get_source_package_name()
 
     url = f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on"
 
@@ -256,8 +253,8 @@ def check_sru_version_string_breaks_upgrades(context: Context):
     """
     max_version_by_series = _rmadision_get_max_version_by_series(context)
 
-    target_version = context.changes.get("Version")
-    target_series = context.changes.get("Distribution", "").partition("-")[0]
+    target_version = context.get_package_version()
+    target_series = context.get_series()
 
     if target_series not in max_version_by_series.keys():
         context.lint_fail(f"{target_series} is not know by rmadison")
@@ -283,37 +280,27 @@ def check_sru_version_string_convention(context: Context):
     """
     docs = "https://documentation.ubuntu.com/project/how-ubuntu-is-made/concepts/version-strings"
 
-    next_version = context.changelog_entry.version
+    next_version = context.get_package_version()
     prev_version = context.changelog_entry_by_index(1).version
-
-    try:
-        if next_version.full_version != context.changes.get("Version"):
-            context.lint_fail("changes file version does not match changelog version")
-    except MissingContextException:
-        pass
 
     match = re.search(r"-[0-9]*", prev_version.full_version)
     if match:
-        (upstream_version, debian_revison, ubuntu_revision) = prev_version.full_version.partition(match.group())
+        (upstream_version, debian_revison, ubuntu_revision) = str(prev_version).partition(match.group())
     else:
         context.lint_fail(
             "check not implemented for native packages, "
             f"please check {docs} to ensure version string is correct"
         )
 
-    dists = context.changelog_entry.distributions
-    if dists is not None:
-        series_version = distro_info.UbuntuDistroInfo().version(dists.partition('-')[0])
-        # Strip off " LTS" if needed.
-        series_version = series_version.partition(' ')[0]
-    else:
-        context.lint_fail("changelog entry is missing distribution field")
+    series_version = distro_info.UbuntuDistroInfo().version(context.get_series())
+    # Strip off " LTS" if needed.
+    series_version = series_version.partition(' ')[0]
 
     if debian_support.version_compare(next_version.upstream_version, prev_version.upstream_version) > 0:
         # Handle new upstream version separately from the rest. This check could be
         # expanded in the future to cover more cases, but at the very least, the new
         # version should end in e.g. 24.04.1.
-        if not next_version.full_version.endswith(f"{series_version}.1"):
+        if not str(next_version).endswith(f"{series_version}.1"):
             context.lint_fail(
                 f"version string for new upstream should contain suffix {series_version}.1"
             )
@@ -357,7 +344,7 @@ def check_sru_version_string_convention(context: Context):
                 f"cannot handle version string format {prev_version}"
             )
 
-    if next_version.full_version != expect:
+    if str(next_version) != expect:
         context.lint_fail(
             f"{next_version} does not match expected version {expect}, "
             f"see {docs} for expected version string conventions"
