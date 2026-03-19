@@ -311,9 +311,6 @@ def check_sru_version_string_convention(context: Context):
     max_version_by_series = _rmadision_get_max_version_by_series(context)
     series_with_version = list(max_version_by_series.values()).count(prev_version)
 
-    if series_with_version < 1:
-        context.lint_fail("rmadison output is not consistent with changelog")
-
     suffix_extra: str = ""
     if series_with_version > 1:
         suffix_extra = f".{series_version}"
