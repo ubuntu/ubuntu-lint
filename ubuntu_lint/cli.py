@@ -141,7 +141,13 @@ class Runner:
             try:
                 linter.fn(context)
             except ubuntu_lint.LintFailure as e:
-                result = level
+                result = e.level
+
+                # If the level for this check was explicitly configured,
+                # downgrade the level if needed.
+                if not linter.is_auto() and level.value < result.value:
+                    result = level
+
                 msg = str(e)
                 if level == ubuntu_lint.LintResult.FAIL and ret <= 0:
                     ret = 1
@@ -244,7 +250,12 @@ def main():
     )
 
     linter_args = parser.add_argument_group(
-        "linter options", "Enable or disable specific lint checks"
+        "linter options",
+        "Configure individual lint checks. Setting to 'off' disables the "
+        "check entirely, while setting to 'warn' or 'fail' controls how a "
+        "failure should be treated. For example, if a lint check returns "
+        "'fail', but 'warn' was set for that check, the failure is downgraded "
+        "to a warning. Setting to 'auto' lets the default take effect."
     )
     for linter in all_linters:
         linter_args.add_argument(
