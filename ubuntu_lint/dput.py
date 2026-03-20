@@ -16,7 +16,7 @@ def call_lint_as_hook(
     interface: CLInterface,
     can_ignore: bool = False,
 ):
-    context = ubuntu_lint.Context(changes=changes.get_raw_changes())
+    context = ubuntu_lint.Context(changes=changes.get_raw_changes(), profile=profile)
     try:
         lint(context)
     except ubuntu_lint.LintFailure as e:
