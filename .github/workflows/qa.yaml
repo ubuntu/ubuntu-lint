@@ -12,7 +12,7 @@ jobs:
     - name: poetry install
       run: poetry install
     - name: black
-      run: poetry run black --diff .
+      run: poetry run black --check --diff .
   flake8:
     runs-on: ubuntu-latest
     steps:
