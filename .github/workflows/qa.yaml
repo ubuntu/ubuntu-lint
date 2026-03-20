@@ -24,7 +24,7 @@ jobs:
     - name: poetry install
       run: poetry install
     - name: flake8
-      run: poetry run flake8 --ignore E501
+      run: poetry run flake8 --ignore=E501,E203,W503
   mypy:
     runs-on: ubuntu-latest
     steps:
