@@ -1,0 +1,5 @@
+{
+  "description": "check that ppa is not present in the version string for uploads to the archive or vice versa",
+  "path": "ubuntu_lint.dput.dput_ppa_version_string",
+  "pre": true
+}

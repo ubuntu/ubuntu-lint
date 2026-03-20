@@ -6,6 +6,7 @@ import ubuntu_lint
 from dput.changes import Changes
 from dput.exceptions import HookException
 from dput.interfaces.cli import CLInterface
+import re
 from typing import Callable
 
 
@@ -24,6 +25,26 @@ def call_lint_as_hook(
         if can_ignore and interface.boolean("WARNING", f"{msg} - ignore?"):
             return
         raise HookException(f"ERROR: {msg}")
+
+
+def dput_ppa_version_string(changes: Changes, profile: dict, interface: CLInterface):
+    """
+    For any upload to the archive, check that ~ppa is not present in the
+    version string. For uploads to PPAs, check that ~ppa is present.
+    """
+    version_contains_ppa = re.match(r".*\w*ppa\d*$", changes["Version"])
+    target = profile.get("name")
+
+    if target == "ppa":
+        if not version_contains_ppa:
+            raise HookException(
+                "ERROR: upload to ppa does not include ~ppa in version string"
+            )
+    else:
+        if version_contains_ppa:
+            raise HookException(
+                "ERROR: upload to archive includes ~ppa in version string"
+            )
 
 
 def dput_missing_launchpad_bugs_fixed(

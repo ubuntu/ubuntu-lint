@@ -1,0 +1,5 @@
+{
+    "+hooks": [
+        "ppa-version-string"
+    ]
+}
