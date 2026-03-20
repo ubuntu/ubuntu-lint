@@ -8,121 +8,149 @@ import ubuntu_lint
 from typing import Callable, Sequence, Any
 
 
+class LinterConfiguration:
+    def __init__(
+        self,
+        name: str,
+        fn: Callable[[ubuntu_lint.Context], None],
+        default_level_devel: ubuntu_lint.LintResult | None,
+        default_level_stable: ubuntu_lint.LintResult | None,
+        level: ubuntu_lint.LintResult | None = None,
+    ):
+        self.name = name
+        self.fn = fn
+        self.level = level
+        self.default_level_devel = default_level_devel
+        self.default_level_stable = default_level_stable
+
+    def get_level(self, is_stable: bool) -> ubuntu_lint.LintResult | None:
+        if self.level is not None:
+            return self.level
+
+        return self.default_level_stable if is_stable else self.default_level_devel
+
+    def is_auto(self) -> bool:
+        return self.level is None
+
+
+all_linters = [
+    LinterConfiguration(
+        name="distribution-invalid",
+        fn=ubuntu_lint.check_distribution_invalid,
+        default_level_devel=ubuntu_lint.LintResult.FAIL,
+        default_level_stable=ubuntu_lint.LintResult.FAIL,
+    ),
+    LinterConfiguration(
+        name="missing-bug-references",
+        fn=ubuntu_lint.check_missing_bug_references,
+        default_level_devel=ubuntu_lint.LintResult.WARN,
+        default_level_stable=ubuntu_lint.LintResult.FAIL,
+    ),
+    LinterConfiguration(
+        name="missing-git-ubuntu-references",
+        fn=ubuntu_lint.check_missing_git_ubuntu_references,
+        default_level_devel=ubuntu_lint.LintResult.WARN,
+        default_level_stable=ubuntu_lint.LintResult.WARN,
+    ),
+    LinterConfiguration(
+        name="missing-launchpad-bugs-fixed",
+        fn=ubuntu_lint.check_missing_launchpad_bugs_fixed,
+        default_level_devel=ubuntu_lint.LintResult.WARN,
+        default_level_stable=ubuntu_lint.LintResult.FAIL,
+    ),
+    LinterConfiguration(
+        name="missing-pending-changelog-entry",
+        fn=ubuntu_lint.check_missing_pending_changelog_entry,
+        default_level_devel=ubuntu_lint.LintResult.WARN,
+        default_level_stable=ubuntu_lint.LintResult.FAIL,
+    ),
+    LinterConfiguration(
+        name="missing-ubuntu-maintainer",
+        fn=ubuntu_lint.check_missing_ubuntu_maintainer,
+        default_level_devel=ubuntu_lint.LintResult.FAIL,
+        default_level_stable=ubuntu_lint.LintResult.FAIL,
+    ),
+    LinterConfiguration(
+        name="sru-bug-missing-template",
+        fn=ubuntu_lint.check_sru_bug_missing_template,
+        default_level_devel=None,
+        default_level_stable=ubuntu_lint.LintResult.WARN,
+    ),
+    LinterConfiguration(
+        name="sru-bug-missing-release-tasks",
+        fn=ubuntu_lint.check_sru_bug_missing_release_tasks,
+        default_level_devel=None,
+        default_level_stable=ubuntu_lint.LintResult.WARN,
+    ),
+    LinterConfiguration(
+        name="sru-version-string-breaks-upgrades",
+        fn=ubuntu_lint.check_sru_version_string_breaks_upgrades,
+        default_level_devel=None,
+        default_level_stable=ubuntu_lint.LintResult.WARN,
+    ),
+    LinterConfiguration(
+        name="sru-version-string-convention",
+        fn=ubuntu_lint.check_sru_version_string_convention,
+        default_level_devel=None,
+        default_level_stable=ubuntu_lint.LintResult.WARN,
+    ),
+]
+
+
 class Runner:
-    all_linters = {
-        "distribution-invalid": ubuntu_lint.check_distribution_invalid,
-        "missing-bug-references": ubuntu_lint.check_missing_bug_references,
-        "missing-git-ubuntu-references": ubuntu_lint.check_missing_git_ubuntu_references,
-        "missing-launchpad-bugs-fixed": ubuntu_lint.check_missing_launchpad_bugs_fixed,
-        "missing-pending-changelog-entry": ubuntu_lint.check_missing_pending_changelog_entry,
-        "missing-ubuntu-maintainer": ubuntu_lint.check_missing_ubuntu_maintainer,
-        "sru-bug-missing-template": ubuntu_lint.check_sru_bug_missing_template,
-        "sru-bug-missing-release-tasks": ubuntu_lint.check_sru_bug_missing_release_tasks,
-        "sru-version-string-breaks-upgrades": ubuntu_lint.check_sru_version_string_breaks_upgrades,
-        "sru-version-string-convention": ubuntu_lint.check_sru_version_string_convention,
-    }
-
-    # Default actions when linting development release.
-    auto_devel = {
-        "distribution-invalid": "fail",
-        "missing-bug-references": "warn",
-        "missing-git-ubuntu-references": "warn",
-        "missing-launchpad-bugs-fixed": "warn",
-        "missing-pending-changelog-entry": "warn",
-        "missing-ubuntu-maintainer": "fail",
-        "sru-bug-missing-template": "off",
-        "sru-bug-missing-release-tasks": "off",
-        "sru-version-string-breaks-upgrades": "off",
-        "sru-version-string-convention": "off",
-    }
-
-    # Default actions when linting stable releases.
-    auto_stable = {
-        "distribution-invalid": "fail",
-        "missing-bug-references": "fail",
-        "missing-git-ubuntu-references": "warn",
-        "missing-launchpad-bugs-fixed": "fail",
-        "missing-pending-changelog-entry": "fail",
-        "missing-ubuntu-maintainer": "fail",
-        "sru-bug-missing-template": "warn",
-        "sru-bug-missing-release-tasks": "warn",
-        "sru-version-string-breaks-upgrades": "warn",
-        "sru-version-string-convention": "warn",
-    }
-
     def __init__(self):
-        self._checks_by_name: dict = self.all_linters
-        self._action_by_name: dict = {
-            name: "auto" for name in self._checks_by_name.keys()
+        self._checks_by_name: dict = {
+            linter.name: linter for linter in all_linters
         }
-        self._results: dict[str, list[tuple[str, str]]] = {}
+        self._results: dict[ubuntu_lint.LintResult, list[tuple[str, str]]] = {}
 
         self.changes_file: str | None = None
         self.debian_changelog: str | None = None
         self.source_dir: str = "."
         self.verbose: bool = False
 
-    def set_linter(
+    def set_linter_level(
         self,
         name: str,
-        fn: Callable[[ubuntu_lint.Context], None],
-        failure_action: str,
+        level: str,
     ) -> None:
         """Configure a linter on the runner."""
 
-        if failure_action == "off":
+        if level == "off":
             try:
                 del self._checks_by_name[name]
-                del self._action_by_name[name]
             except KeyError:
                 pass
-
-            return
-
-        self._checks_by_name[name] = fn
-        self._action_by_name[name] = failure_action
+        elif level == "auto":
+            self._checks_by_name[name].level = None
+        else:
+            self._checks_by_name[name].level = ubuntu_lint.LintResult[level.upper()]
 
     def run(self, context: ubuntu_lint.Context) -> int:
         """Run the configured linters with the given context."""
         ret = 0
 
-        if context.is_stable_release():
-            auto = self.auto_stable
-        else:
-            auto = self.auto_devel
-
-        for name, fn in self._checks_by_name.items():
-            failure_action = self._action_by_name[name]
-
-            if failure_action == "auto":
-                try:
-                    failure_action = auto[name]
-                except KeyError:
-                    # Do not run this linter by default in this context.
-                    continue
-
-            if failure_action == "off":
-                # Should not happen, but just in case.
+        for name, linter in self._checks_by_name.items():
+            level = linter.get_level(context.is_stable_release())
+            if level is None:
                 continue
 
-            if failure_action not in ("warn", "fail"):
-                raise ValueError(f'invalid failure action "{failure_action}"')
-
-            result: str = "OK"
+            result = ubuntu_lint.LintResult.OK
             msg: str = ""
             print(f"Running {name}...", end="", flush=True)
             try:
-                fn(context)
+                linter.fn(context)
             except ubuntu_lint.LintFailure as e:
-                result = failure_action.upper()
+                result = level
                 msg = str(e)
-                if failure_action == "fail" and ret <= 0:
+                if level == ubuntu_lint.LintResult.FAIL and ret <= 0:
                     ret = 1
+
             except ubuntu_lint.MissingContextException as e:
-                if self._action_by_name[name] == "auto":
-                    result = "SKIP"
+                if linter.is_auto():
+                    result = ubuntu_lint.LintResult.SKIP
                 else:
-                    result = "ERROR"
+                    result = ubuntu_lint.LintResult.ERROR
                     ret = 2
 
                 msg = str(e)
@@ -132,7 +160,7 @@ class Runner:
             except KeyError:
                 self._results[result] = [(name, msg)]
 
-            print(result)
+            print(result.name)
 
         self.print_summary()
 
@@ -142,28 +170,28 @@ class Runner:
         ran = 0
 
         # Print failure details
-        for mode, results in self._results.items():
+        for level, results in self._results.items():
             num = len(results)
             ran += num
 
-            if mode == "OK" or num == 0:
+            if level == ubuntu_lint.LintResult.OK or num == 0:
                 continue
 
-            if mode == "SKIP" and not self.verbose:
+            if level == ubuntu_lint.LintResult.SKIP and not self.verbose:
                 continue
 
             if num == 1:
-                print(f"\n{mode}: 1 issue")
+                print(f"\n{level.name}: 1 issue")
             else:
-                print(f"\n{mode}: {num} issues")
+                print(f"\n{level.name}: {num} issues")
 
             for (name, msg) in results:
                 print(f"    {name}: {msg}")
 
         stats = []
-        for mode in ("OK", "FAIL", "WARN", "ERROR", "SKIP"):
-            num = len(self._results.get(mode, []))
-            stats.append(f"{mode}: {num}")
+        for level in ubuntu_lint.LintResult:
+            num = len(self._results.get(level, []))
+            stats.append(f"{level.name}: {num}")
         short = ", ".join(stats)
 
         print(f"\nSummary: ran {ran} lint checks ({short})")
@@ -180,7 +208,7 @@ class ActionConfigureLinter(argparse.Action):
         # '--linter-name' -> 'linter-name'
         assert option_string is not None
         name = option_string.lstrip("-")
-        namespace.set_linter(name, namespace.all_linters[name], values)
+        namespace.set_linter_level(name, values)
 
 
 def main():
@@ -218,9 +246,9 @@ def main():
     linter_args = parser.add_argument_group(
         "linter options", "Enable or disable specific lint checks"
     )
-    for name, callback in Runner.all_linters.items():
+    for linter in all_linters:
         linter_args.add_argument(
-            f"--{name}",
+            f"--{linter.name}",
             type=str,
             choices=["auto", "off", "warn", "fail"],
             default="auto",
