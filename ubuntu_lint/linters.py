@@ -133,6 +133,20 @@ def check_missing_pending_changelog_entry(context: Context):
         )
 
 
+def check_ppa_version_string(context: Context):
+    """
+    For any upload to the archive, check that ~ppa is not present in the
+    version string. For uploads to PPAs, check that ~ppa is present.
+    """
+    version = context.changes.get_as_string("Version")
+    target = context.profile.get("name")
+
+    if target == "ppa" and "~ppa" not in version:
+        context.lint_fail("upload to ppa does not include ~ppa in version string")
+    elif target == "ubuntu" and "~ppa" in version:
+        context.lint_fail("upload to archive includes ~ppa in version string")
+
+
 def check_sru_bug_missing_template(context: Context):
     """
     For uploads to stable releases, checks that bugs referenced in the changes

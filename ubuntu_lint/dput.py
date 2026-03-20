@@ -26,6 +26,20 @@ def call_lint_as_hook(
         raise HookException(f"ERROR: {msg}")
 
 
+def dput_ppa_version_string(
+    changes: Changes, profile: dict, interface: CLInterface
+):
+    """
+    Hook wrapper around ubuntu_lint.check_ppa_version_string.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_ppa_version_string,
+        changes,
+        profile,
+        interface,
+    )
+
+
 def dput_missing_launchpad_bugs_fixed(
     changes: Changes, profile: dict, interface: CLInterface
 ):

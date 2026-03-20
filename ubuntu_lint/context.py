@@ -88,7 +88,7 @@ class Context:
         assert self._changes is not None
 
         return self._changes
-    
+
     @property
     def profile(self) -> dict:
         if not self._profile:
