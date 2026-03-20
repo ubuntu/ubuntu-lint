@@ -16,7 +16,7 @@ def call_lint_as_hook(
     interface: CLInterface,
     can_ignore: bool = False,
 ):
-    context = ubuntu_lint.Context(changes=changes.get_raw_changes())
+    context = ubuntu_lint.Context(changes=changes.get_raw_changes(), profile=profile)
     try:
         lint(context)
     except ubuntu_lint.LintFailure as e:
@@ -24,6 +24,20 @@ def call_lint_as_hook(
         if can_ignore and interface.boolean("WARNING", f"{msg} - ignore?"):
             return
         raise HookException(f"ERROR: {msg}")
+
+
+def dput_ppa_version_string(
+    changes: Changes, profile: dict, interface: CLInterface
+):
+    """
+    Hook wrapper around ubuntu_lint.check_ppa_version_string.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_ppa_version_string,
+        changes,
+        profile,
+        interface,
+    )
 
 
 def dput_missing_launchpad_bugs_fixed(

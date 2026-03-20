@@ -36,6 +36,7 @@ class Context:
     def __init__(
         self,
         changes: str | deb822.Changes | None = None,
+        profile: dict | None = None,
         debian_changelog: str | changelog.Changelog | None = None,
         launchpad_handle: Launchpad | None = None,
         source_dir: str | None = None,
@@ -57,6 +58,10 @@ class Context:
 
         elif changes is not None:
             raise ValueError("invalid type for changes")
+
+        self._profile: dict | None = None
+        if profile is not None:
+            self._profile = profile
 
         self._changelog: changelog.Changelog | None = None
         if isinstance(debian_changelog, str):
@@ -83,6 +88,14 @@ class Context:
         assert self._changes is not None
 
         return self._changes
+
+    @property
+    def profile(self) -> dict:
+        if not self._profile:
+            raise MissingContextException("missing context for upload profile")
+        assert self._profile is not None
+
+        return self._profile
 
     def changelog_entry_by_index(self, index: int) -> changelog.ChangeBlock:
         if not self._changelog:

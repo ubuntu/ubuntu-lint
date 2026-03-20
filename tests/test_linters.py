@@ -72,6 +72,39 @@ Vcs-Git-Commit: 6e591bb3a2bbc44dcb6f49499dc7dbee400ce5b9
 Vcs-Git-Ref: refs/heads/testing
 """)
 
+basic_changes_ppa = deb822.Changes("""
+Format: 1.8
+Date: Thu, 19 Mar 2026 19:53:17 -0700
+Source: hello
+Built-For-Profiles: derivative.ubuntu noudeb
+Architecture: source
+Version: 2.10-5ubuntu1~ppa1
+Distribution: resolute
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: John Doe <john.doe@example.com>
+Changes:
+ hello (2.10-5ubuntu1~ppa1) resolute; urgency=medium
+ .
+   * Testing
+Checksums-Sha1:
+ 93d36eb50575b7520ef1c83b9bb710e47b173485 1090 hello_2.10-5ubuntu1~ppa1.dsc
+ f7bebf6f9c62a2295e889f66e05ce9bfaed9ace3 725946 hello_2.10.orig.tar.gz
+ 68e569d38607b4a6c49855157a7e088e7cbd29b5 13280 hello_2.10-5ubuntu1~ppa1.debian.tar.xz
+ 710b6fda80d0db1662bb1be900e16d36778e4e0c 6488 hello_2.10-5ubuntu1~ppa1_source.buildinfo
+Checksums-Sha256:
+ b13071d9b7f4e7d5940cec73b21efe640894d135d8b959dac6bc77fff878728b 1090 hello_2.10-5ubuntu1~ppa1.dsc
+ 31e066137a962676e89f69d1b65382de95a7ef7d914b8cb956f41ea72e0f516b 725946 hello_2.10.orig.tar.gz
+ 8b1e3f6da54c3fc390e49cb5ee2e8079793496b0488465822754abbc91f0af27 13280 hello_2.10-5ubuntu1~ppa1.debian.tar.xz
+ ef2fd9b53c0058c85c0b6c35752e6df068f4fa2267622a93ef922275a045ad0e 6488 hello_2.10-5ubuntu1~ppa1_source.buildinfo
+Files:
+ 3f9815521e1d422171f47ae52122bf81 1090 devel optional hello_2.10-5ubuntu1~ppa1.dsc
+ 6cd0ffea3884a4e79330338dcc2987d6 725946 devel optional hello_2.10.orig.tar.gz
+ bf2ddaa879860206e8d7f93a08e148a5 13280 devel optional hello_2.10-5ubuntu1~ppa1.debian.tar.xz
+ e7210718902f4ef005852d3b484e4eeb 6488 devel optional hello_2.10-5ubuntu1~ppa1_source.buildinfo
+Original-Maintainer: Santiago Vila <sanvila@debian.org>
+""")
+
 basic_changes_sru = deb822.Changes("""
 Format: 1.8
 Date: Wed, 11 Mar 2026 16:01:41 -0400
@@ -102,6 +135,107 @@ Files:
  2b095557f297d3f85e85a72363dd1019 6025 devel optional hello_2.10-3ubuntu0.1_source.buildinfo
 Original-Maintainer: Santiago Vila <sanvila@debian.org>
 """)
+
+archive_upload_profile = {
+    "name": "ubuntu",
+    "allow_dcut": False,
+    "allow_unsigned_uploads": False,
+    "allowed_distributions": "(?!UNRELEASED)",
+    "default_host_main": "ssh-ubuntu",
+    "full_upload_log": False,
+    "hash": "md5",
+    "interface": "cli",
+    "login": "anonymous",
+    "meta": "ubuntu",
+    "method": "ftp",
+    "passive_ftp": True,
+    "post_upload_command": "",
+    "pre_upload_command": "",
+    "run_lintian": False,
+    "scp_compress": False,
+    "allowed-distribution": {},
+    "codenames": "ubuntu",
+    "hooks": [
+        "badauthor",
+        "updatemaintainer",
+        "ppaforppaonly",
+        "badcontent",
+        "nobug",
+        "sure",
+        "gitubuntu",
+        "placeholderbug",
+        "checksum",
+        "suite-mismatch",
+        "releasemismatch",
+        "supported-distribution",
+        "required-fields",
+        "check-debs",
+        "gpg",
+    ],
+    "run_dinstall": False,
+    "check_version": False,
+    "progress_indicator": "2",
+    "fqdn": "upload.ubuntu.com",
+    "incoming": "/ubuntu",
+    "supported-distribution": {
+        "allowed": ["release", "proposed", "backports", "security"],
+        "known": ["release", "proposed", "updates", "backports", "security"],
+    },
+    "check-debs": {"enforce": "source", "skip": False},
+    "required-fields": {
+        "skip": False,
+        "fields": ["Launchpad-Bugs-Fixed"],
+        "suites": ["any-stable"],
+    },
+    "valid_commands": [],
+}
+
+ppa_upload_profile = {
+    "name": "ppa",
+    "allow_dcut": False,
+    "allow_unsigned_uploads": False,
+    "allowed_distributions": "(?!UNRELEASED)",
+    "default_host_main": "ssh-ubuntu",
+    "full_upload_log": False,
+    "hash": "md5",
+    "interface": "cli",
+    "login": "anonymous",
+    "meta": "ubuntu",
+    "method": "ftp",
+    "passive_ftp": True,
+    "post_upload_command": "",
+    "pre_upload_command": "",
+    "run_lintian": False,
+    "scp_compress": False,
+    "allowed-distribution": {},
+    "codenames": "ubuntu",
+    "hooks": [
+        "check-debs",
+        "nobug",
+        "badcontent",
+        "checksum",
+        "required-fields",
+        "ppaforppaonly",
+        "suite-mismatch",
+        "badauthor",
+        "placeholderbug",
+        "gpg",
+        "releasemismatch",
+    ],
+    "run_dinstall": False,
+    "check_version": False,
+    "progress_indicator": "2",
+    "fqdn": "ppa.launchpad.net",
+    "incoming": "~johndoe/testing",
+    "required-fields": {"skip": True},
+    "supported-distribution": {
+        "allowed": ["release"],
+        "known": ["release", "proposed", "updates", "backports", "security"],
+    },
+    "check-debs": {"enforce": "source", "skip": False},
+    "valid_commands": [],
+    "ppa": "johndoe/testing",
+}
 
 
 def test_check_missing_ubuntu_maintainer():
@@ -218,6 +352,26 @@ hello (2.10-5ubuntu1) uffda; urgency=medium
     with pytest.raises(ubuntu_lint.LintFailure):
         ubuntu_lint.check_distribution_invalid(
             context=ubuntu_lint.Context(debian_changelog=dch)
+        )
+
+
+def test_check_ppa_version_string():
+    ubuntu_lint.check_ppa_version_string(
+        context=ubuntu_lint.Context(changes=basic_changes_ubuntu_delta, profile=archive_upload_profile)
+    )
+
+    with pytest.raises(ubuntu_lint.LintFailure):
+        ubuntu_lint.check_ppa_version_string(
+            context=ubuntu_lint.Context(changes=basic_changes_ubuntu_delta, profile=ppa_upload_profile)
+        )
+
+    ubuntu_lint.check_ppa_version_string(
+        context=ubuntu_lint.Context(changes=basic_changes_ppa, profile=ppa_upload_profile)
+    )
+
+    with pytest.raises(ubuntu_lint.LintFailure):
+        ubuntu_lint.check_ppa_version_string(
+            context=ubuntu_lint.Context(changes=basic_changes_ppa, profile=archive_upload_profile)
         )
 
 
