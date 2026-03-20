@@ -78,9 +78,9 @@ def check_missing_git_ubuntu_references(context: Context):
     r = requests.get(url)
     if not r.ok:
         if r.status_code == 404:
-            context.lint_fail(f"{url} does not exist")
+            context.lint_error(f"{url} does not exist")
         else:
-            context.lint_fail(f"failed to check {url} (status_code={r.status_code})")
+            context.lint_warn(f"failed to check {url} (status_code={r.status_code})")
 
     if not r.text.startswith(f"From {vcs_git_commit} "):
         context.lint_fail("Vcs-Git fields in changes file do not match the remote")
@@ -140,7 +140,7 @@ def check_sru_bug_missing_template(context: Context):
     incomplete.
     """
     if not context.is_stable_release():
-        return
+        context.lint_skip("this check applies to SRUs only")
 
     bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
 
@@ -169,7 +169,7 @@ def check_sru_bug_missing_release_tasks(context: Context):
     missing a task for the appropriate release, and warns if not.
     """
     if not context.is_stable_release():
-        return
+        context.lint_skip("this check applies to SRUs only")
 
     bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
 
@@ -215,9 +215,9 @@ def _rmadision_get_max_version_by_series(context: Context) -> dict[str, str]:
     r = requests.get(url)
     if not r.ok:
         if r.status_code == 404:
-            context.lint_fail(f"{url} does not exist")
+            context.lint_error(f"{url} does not exist")
         else:
-            context.lint_fail(f"failed to check {url} (status_code={r.status_code})")
+            context.lint_error(f"failed to check {url} (status_code={r.status_code})")
 
     max_version_by_series: dict[str, str] = {}
     for line in r.text.splitlines():
@@ -226,7 +226,7 @@ def _rmadision_get_max_version_by_series(context: Context) -> dict[str, str]:
         values = [c.strip() for c in line.split("|")]
 
         if len(values) < 4:
-            context.lint_fail(f"Unexpected line from rmadison: {line}")
+            context.lint_error(f"Unexpected line from rmadison: {line}")
 
         version = values[1]
         suite = values[2]
@@ -263,7 +263,7 @@ def check_sru_version_string_breaks_upgrades(context: Context):
         compare_series = [d for d in distro_info.UbuntuDistroInfo().get_all() if d in max_version_by_series]
         index = compare_series.index(target_series)
     except ValueError:
-        context.lint_fail(f"{target_series} is not known by distro-info")
+        context.lint_error(f"{target_series} is not known by distro-info")
 
     for s in compare_series[index + 1:]:
         v = max_version_by_series[s]
@@ -287,7 +287,7 @@ def check_sru_version_string_convention(context: Context):
     if match:
         (upstream_version, debian_revison, ubuntu_revision) = str(prev_version).partition(match.group())
     else:
-        context.lint_fail(
+        context.lint_skip(
             "check not implemented for native packages, "
             f"please check {docs} to ensure version string is correct"
         )
@@ -337,7 +337,7 @@ def check_sru_version_string_convention(context: Context):
 
             expect = f"{upstream_version}{debian_revison}{new_ubuntu_revision}"
         except ValueError:
-            context.lint_fail(
+            context.lint_error(
                 f"cannot handle version string format {prev_version}"
             )
 
