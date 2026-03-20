@@ -21,6 +21,11 @@ def call_lint_as_hook(
         lint(context)
     except ubuntu_lint.LintFailure as e:
         msg = str(e)
+
+        if e.level == ubuntu_lint.LintResult.SKIP:
+            interface.message("SKIP", str(e))
+            return
+
         if can_ignore and interface.boolean("WARNING", f"{msg} - ignore?"):
             return
         raise HookException(f"ERROR: {msg}")
