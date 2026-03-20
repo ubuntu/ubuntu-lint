@@ -99,9 +99,7 @@ all_linters = [
 
 class Runner:
     def __init__(self):
-        self._checks_by_name: dict = {
-            linter.name: linter for linter in all_linters
-        }
+        self._checks_by_name: dict = {linter.name: linter for linter in all_linters}
         self._results: dict[ubuntu_lint.LintResult, list[tuple[str, str]]] = {}
 
         self.changes_file: str | None = None
@@ -191,7 +189,7 @@ class Runner:
             else:
                 print(f"\n{level.name}: {num} issues")
 
-            for (name, msg) in results:
+            for name, msg in results:
                 print(f"    {name}: {msg}")
 
         stats = []
@@ -255,7 +253,7 @@ def main():
         "check entirely, while setting to 'warn' or 'fail' controls how a "
         "failure should be treated. For example, if a lint check returns "
         "'fail', but 'warn' was set for that check, the failure is downgraded "
-        "to a warning. Setting to 'auto' lets the default take effect."
+        "to a warning. Setting to 'auto' lets the default take effect.",
     )
     for linter in all_linters:
         linter_args.add_argument(

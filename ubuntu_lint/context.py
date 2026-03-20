@@ -19,6 +19,7 @@ class LintResult(enum.Enum):
     The possible results of a lint check. When a LintFailure is raised,
     its level attribute will be set with one of SKIP, WARN, ERROR, FAIL.
     """
+
     OK = enum.auto()
     SKIP = enum.auto()
     WARN = enum.auto()
@@ -32,6 +33,7 @@ class LintFailure(Exception):
     Callers of linters should handle this exception to determine why a specific linter
     failed.
     """
+
     def __init__(self, reason: str, level: LintResult = LintResult.FAIL):
         self.level = level
         self.reason = reason
@@ -53,6 +55,7 @@ class InconsistentContextException(Exception):
     This exception is raised when one or more context sources have inconsistent
     data for the same information.
     """
+
     def __init__(self, what: str, from_changes: Any, from_changelog: Any):
         self.what = what
         self.from_changes = from_changes
@@ -175,7 +178,10 @@ class Context:
         if (from_changes, from_changelog) == (None, None):
             raise MissingContextException(f"missing required context for {what}")
 
-        if None not in (from_changes, from_changelog) and from_changes != from_changelog:
+        if (
+            None not in (from_changes, from_changelog)
+            and from_changes != from_changelog
+        ):
             raise InconsistentContextException(what, from_changes, from_changelog)
 
         ret = from_changes or from_changelog
@@ -204,7 +210,7 @@ class Context:
         Return the name of the series associated with the change, e.g.
         noble, resolute, etc.
         """
-        return self.get_distribution().partition('-')[0]
+        return self.get_distribution().partition("-")[0]
 
     def is_stable_release(self) -> bool:
         """

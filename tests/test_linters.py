@@ -226,8 +226,7 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
 
     requests_mock.get(
         f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on",
-        text=textwrap.dedent(
-            """hello | 2.8-4         | trusty          | source
+        text=textwrap.dedent("""hello | 2.8-4         | trusty          | source
                hello | 2.10-1        | xenial          | source
                hello | 2.10-1build1  | bionic          | source
                hello | 2.10-1build3  | bionic-security | source
@@ -237,7 +236,7 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
                hello | 2.10-3build1  | noble           | source
                hello | 2.10-5        | questing        | source
                hello | 2.10-5build1  | resolute        | source
-        """)
+        """),
     )
     ubuntu_lint.check_sru_version_string_breaks_upgrades(
         ubuntu_lint.Context(changes=basic_changes_sru)
@@ -267,8 +266,7 @@ hello ({prev_version}) noble; urgency=high
 """
 
     rmadison_tmpls = [
-        textwrap.dedent(
-            """hello | 2.8-4         | trusty          | source
+        textwrap.dedent("""hello | 2.8-4         | trusty          | source
                hello | 2.10-1        | xenial          | source
                hello | 2.10-1build1  | bionic          | source
                hello | 2.10-1build3  | bionic-security | source
@@ -280,8 +278,7 @@ hello ({prev_version}) noble; urgency=high
                hello | 2.10-5build1  | resolute        | source
         """),
         # Same version in two releases
-        textwrap.dedent(
-            """hello | 2.8-4         | trusty          | source
+        textwrap.dedent("""hello | 2.8-4         | trusty          | source
                hello | 2.10-1        | xenial          | source
                hello | 2.10-1build1  | bionic          | source
                hello | 2.10-1build3  | bionic-security | source
@@ -344,10 +341,10 @@ hello ({prev_version}) noble; urgency=high
         rmadison_tmpl = rmadison_tmpls[i]
         testcases = testcases_list[i]
 
-        for (prev_version, next_version, expect_pass) in testcases:
+        for prev_version, next_version, expect_pass in testcases:
             requests_mock.get(
                 "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=hello&a=source&text=on",
-                text=rmadison_tmpl.format(prev_version=prev_version)
+                text=rmadison_tmpl.format(prev_version=prev_version),
             )
             debian_changelog = changelog.Changelog(
                 changelog_tmpl.format(
@@ -362,7 +359,7 @@ hello ({prev_version}) noble; urgency=high
             else:
                 with pytest.raises(
                     ubuntu_lint.LintFailure,
-                    match=f"{next_version} does not match expected version"
+                    match=f"{next_version} does not match expected version",
                 ):
                     ubuntu_lint.check_sru_version_string_convention(context)
 
@@ -378,10 +375,10 @@ hello ({prev_version}) noble; urgency=high
         ("2.10-3ubuntu1", "2.11-1ubuntu2", False),
     ]
 
-    for (prev_version, next_version, expect_pass) in testcases:
+    for prev_version, next_version, expect_pass in testcases:
         requests_mock.get(
             "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=hello&a=source&text=on",
-            text=rmadison_tmpls[0].format(prev_version=prev_version)
+            text=rmadison_tmpls[0].format(prev_version=prev_version),
         )
         debian_changelog = changelog.Changelog(
             changelog_tmpl.format(
@@ -396,6 +393,6 @@ hello ({prev_version}) noble; urgency=high
         else:
             with pytest.raises(
                 ubuntu_lint.LintFailure,
-                match="version string for new upstream should contain suffix"
+                match="version string for new upstream should contain suffix",
             ):
                 ubuntu_lint.check_sru_version_string_convention(context)
