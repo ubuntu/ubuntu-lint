@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import distro_info
+import enum
 import os
 
 from debian import (
@@ -13,14 +14,29 @@ from launchpadlib.launchpad import Launchpad
 from typing import Any
 
 
+class LintResult(enum.Enum):
+    """
+    The possible results of a lint check. When a LintFailure is raised,
+    its level attribute will be set with one of SKIP, WARN, ERROR, FAIL.
+    """
+    OK = enum.auto()
+    SKIP = enum.auto()
+    WARN = enum.auto()
+    ERROR = enum.auto()
+    FAIL = enum.auto()
+
+
 class LintFailure(Exception):
     """
-    This exception is raised when a linter calls Context.lint_fail. Callers of
-    linters should handle this exception to determine why a specific linter
+    This exception is raised when a linter calls lint_fail, lint_warn, or lint_skip.
+    Callers of linters should handle this exception to determine why a specific linter
     failed.
     """
+    def __init__(self, reason: str, level: LintResult = LintResult.FAIL):
+        self.level = level
+        self.reason = reason
 
-    pass
+        super().__init__(reason)
 
 
 class MissingContextException(Exception):
@@ -140,6 +156,15 @@ class Context:
 
     def lint_fail(self, msg: str):
         raise LintFailure(msg)
+
+    def lint_skip(self, msg: str):
+        raise LintFailure(msg, level=LintResult.SKIP)
+
+    def lint_warn(self, msg: str):
+        raise LintFailure(msg, level=LintResult.WARN)
+
+    def lint_error(self, msg: str):
+        raise LintFailure(msg, level=LintResult.ERROR)
 
     def _ensure_get[T](
         self,

@@ -4,6 +4,7 @@
 from .context import (
     Context,
     LintFailure,
+    LintResult,
     MissingContextException,
 )
 from .linters import (
@@ -22,6 +23,7 @@ from .linters import (
 __all__ = [
     "Context",
     "LintFailure",
+    "LintResult",
     "MissingContextException",
     "check_missing_ubuntu_maintainer",
     "check_missing_launchpad_bugs_fixed",
