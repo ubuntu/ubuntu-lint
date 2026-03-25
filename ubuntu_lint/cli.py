@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import argparse
+import json
 import sys
 import ubuntu_lint
 
@@ -106,6 +107,7 @@ class Runner:
         self.debian_changelog: str | None = None
         self.source_dir: str = "."
         self.verbose: bool = False
+        self.print_json: bool = False
 
     def set_linter_level(
         self,
@@ -135,7 +137,8 @@ class Runner:
 
             result = ubuntu_lint.LintResult.OK
             msg: str = ""
-            print(f"Running {name}...", end="", flush=True)
+            if not self.print_json:
+                print(f"Running {name}...", end="", flush=True)
             try:
                 linter.fn(context)
             except ubuntu_lint.LintFailure as e:
@@ -164,16 +167,28 @@ class Runner:
             except KeyError:
                 self._results[result] = [(name, msg)]
 
-            print(result.name)
+            if not self.print_json:
+                print(result.name)
 
         self.print_summary()
 
         return ret
 
     def print_summary(self):
-        ran = 0
+        if self.print_json:
+            output = {}
+
+            for level, results in self._results.items():
+                for name, msg in results:
+                    output[name] = {"result": level.name}
+                    if level != ubuntu_lint.LintResult.OK:
+                        output[name]["reason"] = msg
+
+            print(json.dumps(output, indent=4))
+            return
 
         # Print failure details
+        ran = 0
         for level, results in self._results.items():
             num = len(results)
             ran += num
@@ -224,6 +239,12 @@ def main():
         "--verbose",
         help="Verbose output",
         action="store_true",
+    )
+    parser.add_argument(
+        "--json",
+        help="Print results as JSON",
+        action="store_true",
+        dest="print_json",
     )
 
     context_args = parser.add_argument_group(
