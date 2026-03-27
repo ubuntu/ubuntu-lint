@@ -146,7 +146,7 @@ class Runner:
 
                 # If the level for this check was explicitly configured,
                 # downgrade the level if needed.
-                if not linter.is_auto() and level.value < result.value:
+                if level.value < result.value:
                     result = level
 
                 msg = str(e)
