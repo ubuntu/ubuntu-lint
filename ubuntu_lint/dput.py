@@ -141,6 +141,19 @@ def dput_sru_bug_missing_release_tasks(
     )
 
 
+def dput_release_mismatch(changes: Changes, profile: dict, interface: CLInterface):
+    """
+    Hook wrapper around ubuntu_lint.check_release_mismatch.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_release_mismatch,
+        changes,
+        profile,
+        interface,
+        can_ignore=True,
+    )
+
+
 def dput_sru_version_string_breaks_upgrades(
     changes: Changes, profile: dict, interface: CLInterface
 ):

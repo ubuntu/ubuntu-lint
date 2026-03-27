@@ -94,6 +94,12 @@ all_linters = [
         default_level_devel=None,
         default_level_stable=ubuntu_lint.LintResult.WARN,
     ),
+    LinterConfiguration(
+        name="release-mismatch",
+        fn=ubuntu_lint.check_release_mismatch,
+        default_level_devel=None,
+        default_level_stable=ubuntu_lint.LintResult.WARN,
+    ),
 ]
 
 
