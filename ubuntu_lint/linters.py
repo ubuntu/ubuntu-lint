@@ -106,6 +106,11 @@ def check_missing_pending_changelog_entry(context: Context):
         if v.pocket != "Proposed":
             break
 
+        # Conventionally, we would not expect someone to include the Debian changelog
+        # entry, e.g. for an ubuntu1 upload fixing a sync that is stuck in -proposed.
+        if "ubuntu" not in v.source_package_version:
+            continue
+
         pending_versions.add(v.source_package_version)
 
     if not pending_versions:
