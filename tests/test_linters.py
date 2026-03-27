@@ -5,8 +5,10 @@ import copy
 import pytest
 import ubuntu_lint
 import textwrap
+import re
 
 from debian import deb822, changelog
+from distro_info import UbuntuDistroInfo
 
 basic_changes_no_ubuntu_delta = deb822.Changes("""
 Format: 1.8
@@ -396,3 +398,61 @@ hello ({prev_version}) noble; urgency=high
                 match="version string for new upstream should contain suffix",
             ):
                 ubuntu_lint.check_sru_version_string_convention(context)
+
+
+def test_check_release_mismatch():
+    changelog_tmpl = """hello ({version}) {distribution}; urgency=medium
+
+  * Fix a bug (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Wed, 11 Mar 2026 16:01:41 -0400
+ """
+
+    testcases_list = [
+        # 2.10-5 in two releases -> 2.10-5ubuntu0.24.04.1
+        ("2.10-3ubuntu0.24.04.1", "noble", True),
+        ("2.10-3ubuntu0.24.04.1", "focal", False),
+        # 2.10-5ubuntu1.1 in two releases -> 2.10-5ubuntu1.1.24.04.1
+        ("2.10-3ubuntu1.1.24.04.1", "noble", True),
+        ("2.10-3ubuntu1.1.24.04.1", "focal", False),
+        # 2.10-3ubuntu1 -> 2.11-1ubuntu2~24.04.1 (devel backport)
+        ("2.11-1ubuntu2~24.04.1", "noble", True),
+        ("2.11-1ubuntu2~24.04.1", "focal", False),
+    ]
+
+    for version, distribution, expect_pass in testcases_list:
+        debian_changelog = changelog.Changelog(
+            changelog_tmpl.format(version=version, distribution=distribution)
+        )
+
+        context = ubuntu_lint.Context(debian_changelog=debian_changelog)
+
+        if expect_pass:
+            ubuntu_lint.check_release_mismatch(context)
+        else:
+            ubuntu_version = re.findall(r"(?=(\d\d.\d\d))", version)[0]
+            target_distribution = UbuntuDistroInfo().version(distribution).split()[0]
+            with pytest.raises(
+                ubuntu_lint.LintFailure,
+                match=f"ubuntu version {version} contains {ubuntu_version} which does not match target \\({distribution} {target_distribution}\\)",
+            ):
+                ubuntu_lint.check_release_mismatch(context)
+
+    lint_skip_testcases = [
+        # no ubuntu version
+        ("2.10-3", "noble"),
+        ("2.10-3", "focal"),
+        # no ubuntu version string
+        ("2.10-3ubuntu1", "noble"),
+        ("2.10-3ubuntu1", "focal"),
+    ]
+
+    for version, distribution in lint_skip_testcases:
+        debian_changelog = changelog.Changelog(
+            changelog_tmpl.format(version=version, distribution=distribution)
+        )
+
+        context = ubuntu_lint.Context(debian_changelog=debian_changelog)
+
+        with pytest.raises(ubuntu_lint.LintFailure, match="no ubuntu version string"):
+            ubuntu_lint.check_release_mismatch(context)
