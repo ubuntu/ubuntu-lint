@@ -239,6 +239,30 @@ def check_sru_bug_missing_release_tasks(context: Context):
         )
 
 
+def check_release_mismatch(context: Context):
+    """
+    If the version string contains an ubuntu version (eg. 20.04.1), check
+    that it matches the target distribution (eg. focal)
+    """
+    version = str(context.get_package_version())
+    # there are valid backports without "ubuntu" in the version
+    # i.e. 1.2-3~24.04.1
+    ubuntu_string = version.partition("ubuntu")[2] or version.partition("~")[2]
+    ubuntu_versions = re.findall(r"(?=([1-9]\d.(?:04|10)))", ubuntu_string)
+
+    if not ubuntu_versions:
+        return
+
+    target_series = context.get_series()
+    target_version = distro_info.UbuntuDistroInfo().version(target_series).split()[0]
+
+    for ubuntu_version in ubuntu_versions:
+        if ubuntu_version != target_version:
+            context.lint_warn(
+                f"ubuntu version {version} contains {ubuntu_version} which does not match target ({target_series} {target_version})"
+            )
+
+
 def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
     """
     Construct a map of series -> highest version (excluding -backports). This can then
