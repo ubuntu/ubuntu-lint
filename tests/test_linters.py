@@ -402,3 +402,45 @@ hello ({prev_version}) noble; urgency=high
                 match="version string for new upstream should contain suffix",
             ):
                 ubuntu_lint.check_sru_version_string_convention(context)
+
+
+def test_check_release_mismatch():
+    changelog_tmpl = """hello ({version}) {distribution}; urgency=medium
+
+  * Fix a bug (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Wed, 11 Mar 2026 16:01:41 -0400
+ """
+
+    testcases_list = [
+        ("2.10-3~24.04.1", "noble", True, "", ""),
+        ("2.10-3~24.04.1", "focal", False, "24.04", "20.04"),
+        ("2.10-3ubuntu0.24.04.1", "noble", True, "", ""),
+        ("2.10-3ubuntu0.24.04.1", "focal", False, "24.04", "20.04"),
+        ("2.10-3ubuntu1.1.24.04.1", "noble", True, "", ""),
+        ("2.10-3ubuntu1.1.24.04.1", "focal", False, "24.04", "20.04"),
+        ("2.11-1ubuntu2~24.04.1", "noble", True, "", ""),
+        ("2.11-1ubuntu2~24.04.1", "focal", False, "24.04", "20.04"),
+    ]
+
+    for (
+        version,
+        target_series,
+        expect_pass,
+        given_version,
+        target_version,
+    ) in testcases_list:
+        debian_changelog = changelog.Changelog(
+            changelog_tmpl.format(version=version, distribution=target_series)
+        )
+
+        context = ubuntu_lint.Context(debian_changelog=debian_changelog)
+
+        if expect_pass:
+            ubuntu_lint.check_release_mismatch(context)
+        else:
+            with pytest.raises(
+                ubuntu_lint.LintException,
+                match=f"ubuntu version {version} contains {given_version} which does not match target \\({target_series} {target_version}\\)",
+            ):
+                ubuntu_lint.check_release_mismatch(context)

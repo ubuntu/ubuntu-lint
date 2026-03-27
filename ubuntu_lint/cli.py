@@ -111,6 +111,12 @@ all_linters = [
         default_level_stable=ubuntu_lint.LintResult.WARN,
         requires={"changelog"},
     ),
+    LinterConfiguration(
+        name="release-mismatch",
+        fn=ubuntu_lint.check_release_mismatch,
+        default_level_devel=ubuntu_lint.LintResult.WARN,
+        default_level_stable=ubuntu_lint.LintResult.WARN,
+    ),
 ]
 all_linters_by_name = {linter.name: linter for linter in all_linters}
 
