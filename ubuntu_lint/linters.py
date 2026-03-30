@@ -103,6 +103,9 @@ def check_missing_pending_changelog_entry(context: Context):
 
     pending_versions = set()
     for v in published:
+        # The published versions are sorted newest to oldest. Once we encounter
+        # something that is not in -proposed, it was published somewhere that is not
+        # "pending", so stop looking.
         if v.pocket != "Proposed":
             break
 
