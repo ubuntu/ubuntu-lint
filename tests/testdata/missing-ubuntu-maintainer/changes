@@ -1,0 +1,31 @@
+Format: 1.8
+Date: Mon, 26 Jan 2026 15:13:02 -0500
+Source: hello
+Built-For-Profiles: noudeb
+Architecture: source
+Version: 2.10-5ubuntu1
+Distribution: resolute
+Urgency: medium
+Maintainer: John Doe <john.doe@debian.org>
+Changed-By: Joe Schmoe <joe.schmoe@ubuntu.com>
+Launchpad-Bugs-Fixed: 2139641
+Changes:
+ hello (2.10-5ubuntu1) resolute; urgency=medium
+ .
+   * Testing (LP: #2139641)
+Checksums-Sha1:
+ 08f29016e09e4a366167adea6e0858caf561850e 1305 hello_2.10-5ubuntu1.dsc
+ d0804da451515f81e09dd9a6e60845fc8712ed95 13220 hello_2.10-5ubuntu1.debian.tar.xz
+ 96fe9eb330950d595342d3b68fa0cfddebdb2a2e 6025 hello_2.10-5ubuntu1_source.buildinfo
+Checksums-Sha256:
+ 0875a15d885124b056ebdf42d227d88da8a99d62aa20daaa35087a52e04bff29 1305 hello_2.10-5ubuntu1.dsc
+ 60885cbc98f0ea1a93974b4920860cac725a192934b2d844825f0de93a39477c 13220 hello_2.10-5ubuntu1.debian.tar.xz
+ 10c689cf885cf957e804ef199309174886341c615e6756eda17bc17c731fda3c 6025 hello_2.10-5ubuntu1_source.buildinfo
+Files:
+ 7c304e61e5f173cb0db96fb7953fd2a3 1305 devel optional hello_2.10-5ubuntu1.dsc
+ a2cc866362f1389312e00ea05dfd04b4 13220 devel optional hello_2.10-5ubuntu1.debian.tar.xz
+ ebb05783fcf5db5f8febf32488b85d30 6025 devel optional hello_2.10-5ubuntu1_source.buildinfo
+Original-Maintainer: John Doe <john.doe@debian.org>
+Vcs-Git: https://git.launchpad.net/~joe.schmoe/ubuntu/+source/hello
+Vcs-Git-Commit: 305827e48c42f084675dcea9995734031a0a8cff
+Vcs-Git-Ref: refs/heads/testing
