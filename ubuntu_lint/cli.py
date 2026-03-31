@@ -97,6 +97,7 @@ all_linters = [
         default_level_stable=ubuntu_lint.LintResult.WARN,
     ),
 ]
+all_linters_by_name = {linter.name: linter for linter in all_linters}
 
 
 class Runner:
@@ -117,6 +118,9 @@ class Runner:
     ) -> None:
         """Configure a linter on the runner."""
 
+        if name not in self._checks_by_name:
+            self._checks_by_name[name] = all_linters_by_name[name]
+
         if level == "off":
             try:
                 del self._checks_by_name[name]
@@ -126,6 +130,10 @@ class Runner:
             self._checks_by_name[name].level = None
         else:
             self._checks_by_name[name].level = ubuntu_lint.LintResult[level.upper()]
+
+    def set_level_all(self, level: str):
+        for name in list(self._checks_by_name):
+            self.set_linter_level(name, level)
 
     def run(self, context: ubuntu_lint.Context) -> int:
         """Run the configured linters with the given context."""
@@ -228,7 +236,11 @@ class ActionConfigureLinter(argparse.Action):
         # '--linter-name' -> 'linter-name'
         assert option_string is not None
         name = option_string.lstrip("-")
-        namespace.set_linter_level(name, values)
+        if name == "all":
+            # Special key for setting level of all linters.
+            namespace.set_level_all(values)
+        else:
+            namespace.set_linter_level(name, values)
 
 
 def main():
@@ -276,6 +288,17 @@ def main():
         "failure should be treated. For example, if a lint check returns "
         "'fail', but 'warn' was set for that check, the failure is downgraded "
         "to a warning. Setting to 'auto' lets the default take effect.",
+    )
+    linter_args.add_argument(
+        "--all",
+        help=(
+            "Set the level for all lint checks. Settings for specific lint "
+            "checks that come after this flag will take precedence."
+        ),
+        type=str,
+        choices=["auto", "off", "warn", "fail"],
+        default="auto",
+        action=ActionConfigureLinter,
     )
     for linter in all_linters:
         linter_args.add_argument(
