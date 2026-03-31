@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 import sys
 import ubuntu_lint
 
@@ -105,7 +106,7 @@ class Runner:
 
         self.changes_file: str | None = None
         self.debian_changelog: str | None = None
-        self.source_dir: str = "."
+        self.source_dir: str | None = None
         self.verbose: bool = False
         self.print_json: bool = False
 
@@ -286,6 +287,9 @@ def main():
         )
 
     runner = parser.parse_args(namespace=Runner())
+
+    if runner.source_dir is None and os.path.exists("debian"):
+        runner.source_dir = "."
 
     context = ubuntu_lint.Context(
         source_dir=runner.source_dir,
