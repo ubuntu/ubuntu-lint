@@ -1,6 +1,7 @@
 # Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: GPL-3.0-only
 
+import sys
 import ubuntu_lint
 
 from dput.changes import Changes
@@ -27,8 +28,9 @@ def call_lint_as_hook(
             interface.message("SKIP", str(e))
             return
 
-        if can_ignore and interface.boolean("WARNING", f"{msg} - ignore?"):
-            return
+        if sys.stdin.isatty():
+            if can_ignore and interface.boolean("WARNING", f"{msg} - ignore?"):
+                return
         raise HookException(f"ERROR: {msg}")
 
 
