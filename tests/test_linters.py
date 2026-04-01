@@ -134,27 +134,9 @@ def test_check_missing_launchpad_bugs_fixed():
 
 
 def test_check_missing_git_ubuntu_references(requests_mock):
-    vcs_git = basic_changes_ubuntu_delta.get("Vcs-Git")
-    vcs_git_ref = basic_changes_ubuntu_delta.get("Vcs-Git-Ref")
-    vcs_git_commit = basic_changes_ubuntu_delta.get("Vcs-Git-Commit")
-
-    requests_mock.get(
-        f"{vcs_git}/patch/?h={vcs_git_ref}",
-        text=f"From {vcs_git_commit} Mon Sep 17 00:00:00 2001",
-    )
     ubuntu_lint.check_missing_git_ubuntu_references(
         ubuntu_lint.Context(changes=basic_changes_ubuntu_delta)
     )
-
-    # Simulate local commit hash != remote commit hash.
-    requests_mock.get(
-        f"{vcs_git}/patch/?h={vcs_git_ref}",
-        status_code=404,
-    )
-    with pytest.raises(ubuntu_lint.LintFailure):
-        ubuntu_lint.check_missing_git_ubuntu_references(
-            ubuntu_lint.Context(changes=basic_changes_ubuntu_delta)
-        )
 
     # Refs missing from changes file completely
     changes_missing_git_ubuntu_refs = copy.deepcopy(basic_changes_ubuntu_delta)
@@ -164,6 +146,30 @@ def test_check_missing_git_ubuntu_references(requests_mock):
     with pytest.raises(ubuntu_lint.LintFailure):
         ubuntu_lint.check_missing_git_ubuntu_references(
             ubuntu_lint.Context(changes=changes_missing_git_ubuntu_refs)
+        )
+
+
+def test_check_git_ubuntu_references_mismatch(requests_mock):
+    vcs_git = basic_changes_ubuntu_delta.get("Vcs-Git")
+    vcs_git_ref = basic_changes_ubuntu_delta.get("Vcs-Git-Ref")
+    vcs_git_commit = basic_changes_ubuntu_delta.get("Vcs-Git-Commit")
+
+    requests_mock.get(
+        f"{vcs_git}/patch/?h={vcs_git_ref}",
+        text=f"From {vcs_git_commit} Mon Sep 17 00:00:00 2001",
+    )
+    ubuntu_lint.check_git_ubuntu_references_mismatch(
+        ubuntu_lint.Context(changes=basic_changes_ubuntu_delta)
+    )
+
+    # Simulate local commit hash != remote commit hash.
+    requests_mock.get(
+        f"{vcs_git}/patch/?h={vcs_git_ref}",
+        status_code=404,
+    )
+    with pytest.raises(ubuntu_lint.LintFailure):
+        ubuntu_lint.check_git_ubuntu_references_mismatch(
+            ubuntu_lint.Context(changes=basic_changes_ubuntu_delta)
         )
 
 

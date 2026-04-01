@@ -8,6 +8,7 @@ from .context import (
     MissingContextException,
 )
 from .linters import (
+    check_git_ubuntu_references_mismatch,
     check_missing_ubuntu_maintainer,
     check_missing_launchpad_bugs_fixed,
     check_missing_bug_references,
@@ -25,6 +26,7 @@ __all__ = [
     "LintFailure",
     "LintResult",
     "MissingContextException",
+    "check_git_ubuntu_references_mismatch",
     "check_missing_ubuntu_maintainer",
     "check_missing_launchpad_bugs_fixed",
     "check_missing_bug_references",

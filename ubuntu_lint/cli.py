@@ -43,6 +43,12 @@ all_linters = [
         default_level_stable=ubuntu_lint.LintResult.FAIL,
     ),
     LinterConfiguration(
+        name="git-ubuntu-references-mismatch",
+        fn=ubuntu_lint.check_git_ubuntu_references_mismatch,
+        default_level_devel=ubuntu_lint.LintResult.FAIL,
+        default_level_stable=ubuntu_lint.LintResult.FAIL,
+    ),
+    LinterConfiguration(
         name="missing-bug-references",
         fn=ubuntu_lint.check_missing_bug_references,
         default_level_devel=ubuntu_lint.LintResult.WARN,
