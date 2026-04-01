@@ -50,7 +50,7 @@ def check_distribution_invalid(context: Context):
     """
     dist = context.get_series()
     if not distro_info.UbuntuDistroInfo().valid(dist):
-        context.lint_fail(f'"{dist} is not a valid Ubuntu codename')
+        context.lint_fail(f'"{dist}" is not a valid Ubuntu codename')
 
 
 def check_missing_git_ubuntu_references(context: Context):
