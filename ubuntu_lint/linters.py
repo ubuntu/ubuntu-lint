@@ -114,6 +114,16 @@ def check_missing_pending_changelog_entry(context: Context):
     dist = context.get_series()
     package = context.get_source_package_name()
 
+    # Mangle the Changes field so that we can parse it like a changelog.
+    s = context.changes.get_as_string("Changes")
+    s = s.replace(f"\n .\n {package}", f"\n  --\n {package}")
+    s = s + "\n  --\n"
+    lines = ["" if v == " ." else v[1:] for v in s.splitlines()]
+
+    ch = changelog.Changelog(lines, allow_empty_author=True)
+    changes_versions = set([str(v) for v in ch.get_versions()])
+
+    # Check Launchpad for pending package versions in -proposed.
     lp_ubuntu = context.lp.distributions["ubuntu"]
     series = lp_ubuntu.getSeries(name_or_version=dist)
     published = lp_ubuntu.main_archive.getPublishedSources(
@@ -138,15 +148,6 @@ def check_missing_pending_changelog_entry(context: Context):
     if not pending_versions:
         # There is not anything in -proposed, nothing more to do.
         return
-
-    # Mangle the Changes field so that we can parse it like a changelog.
-    s = context.changes.get_as_string("Changes")
-    s = s.replace(f"\n .\n {package}", f"\n  --\n {package}")
-    s = s + "\n  --\n"
-    lines = ["" if v == " ." else v[1:] for v in s.splitlines()]
-
-    ch = changelog.Changelog(lines, allow_empty_author=True)
-    changes_versions = set([str(v) for v in ch.get_versions()])
 
     if not pending_versions <= changes_versions:
         # The versions listed in the changes file is not a superset
