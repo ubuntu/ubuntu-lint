@@ -87,17 +87,6 @@ class Context:
             if debian_changelog is None:
                 debian_changelog = os.path.join(self.source_dir, "debian/changelog")
 
-        self._changes: deb822.Changes | None = None
-        if isinstance(changes, str):
-            with open(changes, "r") as f:
-                self._changes = deb822.Changes(f)
-
-        elif isinstance(changes, deb822.Changes):
-            self._changes = changes
-
-        elif changes is not None:
-            raise ValueError("invalid type for changes")
-
         self._changelog: changelog.Changelog | None = None
         if isinstance(debian_changelog, str):
             with open(debian_changelog, "r") as f:
@@ -108,6 +97,23 @@ class Context:
 
         elif debian_changelog is not None:
             raise ValueError("invalid type for changelog")
+
+        self._changes: deb822.Changes | None = None
+        if changes is not None:
+            self.changes = changes
+
+        elif self._source_dir and self._changelog:
+            # If we have a source dir and a changelog, but no changes were given,
+            # we can try to infer the path to the changes file.
+            name = self.get_source_package_name()
+            version = self.get_package_version()
+            version_no_epoch = version.full_version.removeprefix(f"{version.epoch}:")
+            changes = os.path.join(
+                self._source_dir,
+                f"../{name}_{version_no_epoch}_source.changes",
+            )
+            if os.path.exists(changes):
+                self.changes = changes
 
         if not any((self._changes, self._changelog)):
             raise ValueError("context requires at least one of changes or changelog")
@@ -123,6 +129,18 @@ class Context:
         assert self._changes is not None
 
         return self._changes
+
+    @changes.setter
+    def changes(self, changes: str | deb822.Changes):
+        if isinstance(changes, str):
+            with open(changes, "r") as f:
+                self._changes = deb822.Changes(f)
+
+        elif isinstance(changes, deb822.Changes):
+            self._changes = changes
+
+        else:
+            raise ValueError("invalid type for changes file")
 
     def changelog_entry_by_index(self, index: int) -> changelog.ChangeBlock:
         if not self._changelog:

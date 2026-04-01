@@ -268,7 +268,12 @@ def main():
 
     context_args = parser.add_argument_group(
         "context options",
-        "Control package context for linters",
+        "Control package context for linters. If ubuntu-lint is run without "
+        "any arguments and the current working directory looks like a "
+        "Debian source package, it will use the changelog and the most recent "
+        "changes file as context, if available."
+        "\n\n"
+        "Alternatively, context can be given explicitly using the flags below.",
     )
 
     context_args.add_argument(
