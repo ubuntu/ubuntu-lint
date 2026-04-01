@@ -311,8 +311,19 @@ def main():
 
     runner = parser.parse_args(namespace=Runner())
 
-    if runner.source_dir is None and os.path.exists("debian"):
-        runner.source_dir = "."
+    if not any(
+        (
+            runner.source_dir,
+            runner.debian_changelog,
+            runner.changes_file,
+        )
+    ):
+        if os.path.exists("debian"):
+            runner.source_dir = "."
+        else:
+            parser.error(
+                "must specify a combination of changelog, changes file, or source directory"
+            )
 
     context = ubuntu_lint.Context(
         source_dir=runner.source_dir,
