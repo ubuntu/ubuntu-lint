@@ -212,6 +212,9 @@ class Context:
         """
         return self.get_distribution().partition("-")[0]
 
+    def is_unreleased(self) -> bool:
+        return self.get_series() == "UNRELEASED"
+
     def is_stable_release(self) -> bool:
         """
         Returns True if the context represents an upload targeting a stable

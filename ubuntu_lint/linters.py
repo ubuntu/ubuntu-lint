@@ -108,6 +108,9 @@ def check_missing_pending_changelog_entry(context: Context):
     i.e. entries for uploads which are still in -proposed. This is a warning
     for the development release, and an error for stable releases.
     """
+    if context.is_unreleased():
+        context.lint_skip("changelog is still UNRELEASED")
+
     dist = context.get_series()
     package = context.get_source_package_name()
 
@@ -195,6 +198,9 @@ def check_sru_bug_missing_release_tasks(context: Context):
     if not context.is_stable_release():
         context.lint_skip("this check applies to SRUs only")
 
+    if context.is_unreleased():
+        context.lint_skip("changelog is still UNRELEASED")
+
     bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
 
     if not bugs:
@@ -278,6 +284,9 @@ def check_sru_version_string_breaks_upgrades(context: Context):
     series (from the target series through the development series), to ensure
     the ordering is correct.
     """
+    if context.is_unreleased():
+        context.lint_skip("changelog is still UNRELEASED")
+
     max_version_by_series = _rmadision_get_max_version_by_series(context)
 
     target_version = context.get_package_version()
@@ -310,6 +319,9 @@ def check_sru_version_string_convention(context: Context):
     Examines the package version string to determine if it is appropriate for SRU.
     """
     docs = "https://documentation.ubuntu.com/project/how-ubuntu-is-made/concepts/version-strings"
+
+    if context.is_unreleased():
+        context.lint_skip("changelog is still UNRELEASED")
 
     next_version = context.get_package_version()
     prev_version = context.changelog_entry_by_index(1).version
