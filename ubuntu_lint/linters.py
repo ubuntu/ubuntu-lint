@@ -6,7 +6,7 @@ import re
 import requests
 
 from debian import changelog, debian_support
-from ubuntu_lint import Context
+from ubuntu_lint import Context, MissingContextException
 
 
 def check_missing_ubuntu_maintainer(context: Context):
@@ -170,7 +170,10 @@ def check_sru_bug_missing_template(context: Context):
     if not context.is_stable_release():
         context.lint_skip("this check applies to SRUs only")
 
-    bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
+    try:
+        bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
+    except MissingContextException:
+        bugs = [str(bug) for bug in context.changelog_entry.lp_bugs_closed]
 
     if not bugs:
         context.lint_fail("no bug references found, cannot check for SRU template")
@@ -202,7 +205,10 @@ def check_sru_bug_missing_release_tasks(context: Context):
     if context.is_unreleased():
         context.lint_skip("changelog is still UNRELEASED")
 
-    bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
+    try:
+        bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
+    except MissingContextException:
+        bugs = [str(bug) for bug in context.changelog_entry.lp_bugs_closed]
 
     if not bugs:
         context.lint_fail("no bug references found, cannot check for SRU template")
