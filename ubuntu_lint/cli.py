@@ -9,6 +9,55 @@ import ubuntu_lint
 
 from typing import Callable, Sequence, Any
 
+try:
+    from termcolor import colored
+
+    have_termcolor = True
+except ImportError:
+    have_termcolor = False
+
+
+def format_error(msg: str) -> str:
+    if have_termcolor:
+        return colored(msg, "red")
+
+    return msg
+
+
+def format_info(msg: str) -> str:
+    if have_termcolor:
+        return colored(msg, "white")
+
+    return msg
+
+
+def format_warning(msg: str) -> str:
+    if have_termcolor:
+        return colored(msg, "yellow")
+
+    return msg
+
+
+def format_success(msg: str) -> str:
+    if have_termcolor:
+        return colored(msg, "green")
+
+    return msg
+
+
+def format_result(msg: str, result: ubuntu_lint.LintResult):
+    match result:
+        case ubuntu_lint.LintResult.OK:
+            return format_success(msg)
+        case ubuntu_lint.LintResult.WARN:
+            return format_warning(msg)
+        case ubuntu_lint.LintResult.ERROR:
+            return format_error(msg)
+        case ubuntu_lint.LintResult.FAIL:
+            return format_error(msg)
+
+    return msg
+
 
 class LinterConfiguration:
     def __init__(
@@ -214,7 +263,7 @@ class Runner:
                 self._results[result] = [(name, msg)]
 
             if not self.print_json:
-                print(result.name)
+                print(format_result(result.name, result))
 
         self.print_summary()
 
@@ -246,9 +295,9 @@ class Runner:
                 continue
 
             if num == 1:
-                print(f"\n{level.name}: 1 issue")
+                print(format_result(f"\n{level.name}: 1 issue", level))
             else:
-                print(f"\n{level.name}: {num} issues")
+                print(format_result(f"\n{level.name}: {num} issues", level))
 
             for name, msg in results:
                 print(f"    {name}: {msg}")
