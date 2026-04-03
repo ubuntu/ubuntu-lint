@@ -18,12 +18,14 @@ class LinterConfiguration:
         default_level_devel: ubuntu_lint.LintResult | None,
         default_level_stable: ubuntu_lint.LintResult | None,
         level: ubuntu_lint.LintResult | None = None,
+        requires: set[str] = set(),
     ):
         self.name = name
         self.fn = fn
         self.level = level
         self.default_level_devel = default_level_devel
         self.default_level_stable = default_level_stable
+        self.requires = requires
 
     def get_level(self, is_stable: bool) -> ubuntu_lint.LintResult | None:
         if self.level is not None:
@@ -47,36 +49,42 @@ all_linters = [
         fn=ubuntu_lint.check_git_ubuntu_references_mismatch,
         default_level_devel=ubuntu_lint.LintResult.FAIL,
         default_level_stable=ubuntu_lint.LintResult.FAIL,
+        requires={"changes"},
     ),
     LinterConfiguration(
         name="missing-bug-references",
         fn=ubuntu_lint.check_missing_bug_references,
         default_level_devel=ubuntu_lint.LintResult.WARN,
         default_level_stable=ubuntu_lint.LintResult.FAIL,
+        requires={"changelog"},
     ),
     LinterConfiguration(
         name="missing-git-ubuntu-references",
         fn=ubuntu_lint.check_missing_git_ubuntu_references,
         default_level_devel=ubuntu_lint.LintResult.WARN,
         default_level_stable=ubuntu_lint.LintResult.WARN,
+        requires={"changes"},
     ),
     LinterConfiguration(
         name="missing-launchpad-bugs-fixed",
         fn=ubuntu_lint.check_missing_launchpad_bugs_fixed,
         default_level_devel=ubuntu_lint.LintResult.WARN,
         default_level_stable=ubuntu_lint.LintResult.FAIL,
+        requires={"changes"},
     ),
     LinterConfiguration(
         name="missing-pending-changelog-entry",
         fn=ubuntu_lint.check_missing_pending_changelog_entry,
         default_level_devel=ubuntu_lint.LintResult.WARN,
         default_level_stable=ubuntu_lint.LintResult.FAIL,
+        requires={"changes"},
     ),
     LinterConfiguration(
         name="missing-ubuntu-maintainer",
         fn=ubuntu_lint.check_missing_ubuntu_maintainer,
         default_level_devel=ubuntu_lint.LintResult.FAIL,
         default_level_stable=ubuntu_lint.LintResult.FAIL,
+        requires={"changes"},
     ),
     LinterConfiguration(
         name="sru-bug-missing-template",
@@ -101,6 +109,7 @@ all_linters = [
         fn=ubuntu_lint.check_sru_version_string_convention,
         default_level_devel=None,
         default_level_stable=ubuntu_lint.LintResult.WARN,
+        requires={"changelog"},
     ),
 ]
 all_linters_by_name = {linter.name: linter for linter in all_linters}
@@ -145,9 +154,25 @@ class Runner:
         """Run the configured linters with the given context."""
         ret = 0
 
+        context_sources = set()
+        try:
+            if context.changes:
+                context_sources.add("changes")
+        except ubuntu_lint.MissingContextException:
+            pass
+
+        try:
+            if context.changelog_entry:
+                context_sources.add("changelog")
+        except ubuntu_lint.MissingContextException:
+            pass
+
         for name, linter in self._checks_by_name.items():
             level = linter.get_level(context.is_stable_release())
             if level is None:
+                continue
+
+            if not linter.requires <= context_sources:
                 continue
 
             result = ubuntu_lint.LintResult.OK
