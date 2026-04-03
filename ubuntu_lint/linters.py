@@ -233,7 +233,7 @@ def check_sru_bug_missing_release_tasks(context: Context):
         )
 
 
-def _rmadision_get_max_version_by_series(context: Context) -> dict[str, str]:
+def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
     """
     Construct a map of series -> highest version (excluding -backports). This can then
     be used to compare the target version against all newer releases, to ensure it
@@ -252,7 +252,7 @@ def _rmadision_get_max_version_by_series(context: Context) -> dict[str, str]:
 
     max_version_by_series: dict[str, str] = {}
     for line in r.text.splitlines():
-        # An rmadision line is formatted like:
+        # An rmadison line is formatted like:
         # <source_package> | <version> | <suite> | source
         values = [c.strip() for c in line.split("|")]
 
@@ -288,7 +288,7 @@ def check_sru_version_string_breaks_upgrades(context: Context):
     if context.is_unreleased():
         context.lint_skip("changelog is still UNRELEASED")
 
-    max_version_by_series = _rmadision_get_max_version_by_series(context)
+    max_version_by_series = _rmadison_get_max_version_by_series(context)
 
     target_version = context.get_package_version()
     target_series = context.get_series()
@@ -359,7 +359,7 @@ def check_sru_version_string_convention(context: Context):
 
     # If the previous version is published across multiple series, then we expect e.g.
     # ubuntu24.04.x suffixes.
-    max_version_by_series = _rmadision_get_max_version_by_series(context)
+    max_version_by_series = _rmadison_get_max_version_by_series(context)
     series_with_version = list(max_version_by_series.values()).count(prev_version)
 
     suffix_extra: str = ""
