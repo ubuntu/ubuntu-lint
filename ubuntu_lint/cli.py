@@ -282,9 +282,10 @@ def main():
         type=str,
     )
     context_args.add_argument(
-        "--debian-changelog",
+        "--changelog",
         help="Path to debian changelog",
         type=str,
+        dest="debian_changelog",
     )
     context_args.add_argument(
         "--changes-file",

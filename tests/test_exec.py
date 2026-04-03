@@ -78,7 +78,7 @@ def test_exec_cli(name: str):
         "--all=off",
         f"--{name}=fail",
         f"--changes-file={changes}",
-        f"--debian-changelog={changelog}",
+        f"--changelog={changelog}",
     ]
 
     r = subprocess.run(cmd, capture_output=True)
@@ -106,7 +106,7 @@ def test_exec_cli_expect_fail(name: str, changes: str, changelog: str):
         cmd.append(f"--changes-file={changes}")
 
     if changelog:
-        cmd.append(f"--debian-changelog={changelog}")
+        cmd.append(f"--changelog={changelog}")
 
     r = subprocess.run(cmd, capture_output=True)
     assert r.returncode != 0
