@@ -114,7 +114,7 @@ def test_check_missing_ubuntu_maintainer():
 
     changes_missing_ubuntu_maintainer = copy.deepcopy(basic_changes_ubuntu_delta)
     changes_missing_ubuntu_maintainer["Maintainer"] = "John Doe <john.doe@example.com>"
-    with pytest.raises(ubuntu_lint.LintFailure):
+    with pytest.raises(ubuntu_lint.LintException):
         ubuntu_lint.check_missing_ubuntu_maintainer(
             ubuntu_lint.Context(changes=changes_missing_ubuntu_maintainer)
         )
@@ -127,7 +127,7 @@ def test_check_missing_launchpad_bugs_fixed():
 
     changes_missing_lp_bugs_fixed = copy.deepcopy(basic_changes_ubuntu_delta)
     del changes_missing_lp_bugs_fixed["Launchpad-Bugs-Fixed"]
-    with pytest.raises(ubuntu_lint.LintFailure):
+    with pytest.raises(ubuntu_lint.LintException):
         ubuntu_lint.check_missing_launchpad_bugs_fixed(
             ubuntu_lint.Context(changes=changes_missing_lp_bugs_fixed)
         )
@@ -143,7 +143,7 @@ def test_check_missing_git_ubuntu_references(requests_mock):
     for field in ("Vcs-Git", "Vcs-Git-Commit", "Vcs-Git-Ref"):
         del changes_missing_git_ubuntu_refs[field]
 
-    with pytest.raises(ubuntu_lint.LintFailure):
+    with pytest.raises(ubuntu_lint.LintException):
         ubuntu_lint.check_missing_git_ubuntu_references(
             ubuntu_lint.Context(changes=changes_missing_git_ubuntu_refs)
         )
@@ -167,7 +167,7 @@ def test_check_git_ubuntu_references_mismatch(requests_mock):
         f"{vcs_git}/patch/?h={vcs_git_ref}",
         status_code=404,
     )
-    with pytest.raises(ubuntu_lint.LintFailure):
+    with pytest.raises(ubuntu_lint.LintException):
         ubuntu_lint.check_git_ubuntu_references_mismatch(
             ubuntu_lint.Context(changes=basic_changes_ubuntu_delta)
         )
@@ -194,7 +194,7 @@ hello (2.10-5ubuntu1) resolute; urgency=medium
  -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
 """)
 
-    with pytest.raises(ubuntu_lint.LintFailure):
+    with pytest.raises(ubuntu_lint.LintException):
         ubuntu_lint.check_missing_bug_references(
             context=ubuntu_lint.Context(debian_changelog=dch)
         )
@@ -221,7 +221,7 @@ hello (2.10-5ubuntu1) uffda; urgency=medium
  -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
 """)
 
-    with pytest.raises(ubuntu_lint.LintFailure):
+    with pytest.raises(ubuntu_lint.LintException):
         ubuntu_lint.check_distribution_invalid(
             context=ubuntu_lint.Context(debian_changelog=dch)
         )
@@ -251,7 +251,7 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
     # Simulate a version bump in noble that is greater than questing.
     changes_bad_version = copy.deepcopy(basic_changes_sru)
     changes_bad_version["Version"] = "2.10-5ubuntu0.1"
-    with pytest.raises(ubuntu_lint.LintFailure):
+    with pytest.raises(ubuntu_lint.LintException):
         ubuntu_lint.check_sru_version_string_breaks_upgrades(
             ubuntu_lint.Context(changes=changes_bad_version)
         )
@@ -364,7 +364,7 @@ hello ({prev_version}) noble; urgency=high
                 ubuntu_lint.check_sru_version_string_convention(context)
             else:
                 with pytest.raises(
-                    ubuntu_lint.LintFailure,
+                    ubuntu_lint.LintException,
                     match=f"{next_version} does not match expected version",
                 ):
                     ubuntu_lint.check_sru_version_string_convention(context)
@@ -398,7 +398,7 @@ hello ({prev_version}) noble; urgency=high
             ubuntu_lint.check_sru_version_string_convention(context)
         else:
             with pytest.raises(
-                ubuntu_lint.LintFailure,
+                ubuntu_lint.LintException,
                 match="version string for new upstream should contain suffix",
             ):
                 ubuntu_lint.check_sru_version_string_convention(context)

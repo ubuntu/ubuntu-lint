@@ -16,8 +16,8 @@ from typing import Any
 
 class LintResult(enum.Enum):
     """
-    The possible results of a lint check. When a LintFailure is raised,
-    its level attribute will be set with one of SKIP, WARN, ERROR, FAIL.
+    The possible results of a lint check. When a LintException is raised,
+    its result attribute will be set with one of SKIP, WARN, ERROR, FAIL.
     """
 
     OK = enum.auto()
@@ -27,15 +27,15 @@ class LintResult(enum.Enum):
     FAIL = enum.auto()
 
 
-class LintFailure(Exception):
+class LintException(Exception):
     """
     This exception is raised when a linter calls lint_fail, lint_warn, or lint_skip.
     Callers of linters should handle this exception to determine why a specific linter
     failed.
     """
 
-    def __init__(self, reason: str, level: LintResult = LintResult.FAIL):
-        self.level = level
+    def __init__(self, reason: str, result: LintResult = LintResult.FAIL):
+        self.result = result
         self.reason = reason
 
         super().__init__(reason)
@@ -176,16 +176,16 @@ class Context:
         self._source_dir = source_dir
 
     def lint_fail(self, msg: str):
-        raise LintFailure(msg)
+        raise LintException(msg)
 
     def lint_skip(self, msg: str):
-        raise LintFailure(msg, level=LintResult.SKIP)
+        raise LintException(msg, result=LintResult.SKIP)
 
     def lint_warn(self, msg: str):
-        raise LintFailure(msg, level=LintResult.WARN)
+        raise LintException(msg, result=LintResult.WARN)
 
     def lint_error(self, msg: str):
-        raise LintFailure(msg, level=LintResult.ERROR)
+        raise LintException(msg, result=LintResult.ERROR)
 
     def _ensure_get[T](
         self,

@@ -3,7 +3,7 @@
 
 from .context import (
     Context,
-    LintFailure,
+    LintException,
     LintResult,
     MissingContextException,
 )
@@ -23,7 +23,7 @@ from .linters import (
 
 __all__ = [
     "Context",
-    "LintFailure",
+    "LintException",
     "LintResult",
     "MissingContextException",
     "check_git_ubuntu_references_mismatch",

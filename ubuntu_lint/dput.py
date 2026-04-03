@@ -21,10 +21,10 @@ def call_lint_as_hook(
     context = ubuntu_lint.Context(changes=changes.get_raw_changes())
     try:
         lint(context)
-    except ubuntu_lint.LintFailure as e:
+    except ubuntu_lint.LintException as e:
         msg = str(e)
 
-        if e.level == ubuntu_lint.LintResult.SKIP:
+        if e.result == ubuntu_lint.LintResult.SKIP:
             interface.message("SKIP", str(e))
             return
 

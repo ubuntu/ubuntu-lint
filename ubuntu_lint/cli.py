@@ -156,8 +156,8 @@ class Runner:
                 print(f"Running {name}...", end="", flush=True)
             try:
                 linter.fn(context)
-            except ubuntu_lint.LintFailure as e:
-                result = e.level
+            except ubuntu_lint.LintException as e:
+                result = e.result
 
                 # If the level for this check was explicitly configured,
                 # downgrade the level if needed.
