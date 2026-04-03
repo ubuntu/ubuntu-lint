@@ -1,14 +1,15 @@
 # Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: GPL-3.0-only
 
+import re
 import sys
 import ubuntu_lint
 
 from dput.changes import Changes
 from dput.exceptions import HookException
 from dput.interfaces.cli import CLInterface
-import re
 from typing import Callable
+from ubuntu_lint.cli import format_error, format_warning
 
 
 def call_lint_as_hook(
@@ -28,10 +29,14 @@ def call_lint_as_hook(
             interface.message("SKIP", str(e))
             return
 
-        if sys.stdin.isatty():
-            if can_ignore and interface.boolean("WARNING", f"{msg} - ignore?"):
+        if can_ignore and sys.stdin.isatty():
+            if interface.boolean(
+                format_warning("WARNING"),
+                format_warning(f"{msg} - ignore?"),
+            ):
                 return
-        raise HookException(f"ERROR: {msg}")
+
+        raise HookException(format_error(f"ERROR: {msg}"))
 
 
 def dput_ppa_version_string(changes: Changes, profile: dict, interface: CLInterface):
@@ -45,12 +50,14 @@ def dput_ppa_version_string(changes: Changes, profile: dict, interface: CLInterf
     if target == "ppa":
         if not version_contains_ppa:
             raise HookException(
-                "ERROR: upload to ppa does not include ~ppa in version string"
+                format_error(
+                    "ERROR: upload to ppa does not include ~ppa in version string"
+                )
             )
     else:
         if version_contains_ppa:
             raise HookException(
-                "ERROR: upload to archive includes ~ppa in version string"
+                format_error("ERROR: upload to archive includes ~ppa in version string")
             )
 
 
