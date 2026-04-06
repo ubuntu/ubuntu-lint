@@ -202,9 +202,6 @@ def check_sru_bug_missing_release_tasks(context: Context):
     if not context.is_stable_release():
         context.lint_skip("this check applies to SRUs only")
 
-    if context.is_unreleased():
-        context.lint_skip("changelog is still UNRELEASED")
-
     try:
         bugs = context.changes.get("Launchpad-Bugs-Fixed", "").split()
     except MissingContextException:
@@ -315,8 +312,8 @@ def check_sru_version_string_breaks_upgrades(context: Context):
     series (from the target series through the development series), to ensure
     the ordering is correct.
     """
-    if context.is_unreleased():
-        context.lint_skip("changelog is still UNRELEASED")
+    if not context.is_stable_release():
+        context.lint_skip("this check applies to SRUs only")
 
     max_version_by_series = _rmadison_get_max_version_by_series(context)
 
@@ -351,8 +348,8 @@ def check_sru_version_string_convention(context: Context):
     """
     docs = "https://documentation.ubuntu.com/project/how-ubuntu-is-made/concepts/version-strings"
 
-    if context.is_unreleased():
-        context.lint_skip("changelog is still UNRELEASED")
+    if not context.is_stable_release():
+        context.lint_skip("this check applies to SRUs only")
 
     next_version = context.get_package_version()
     prev_version = context.changelog_entry_by_index(1).version
