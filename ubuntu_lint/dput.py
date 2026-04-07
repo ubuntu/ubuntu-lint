@@ -6,6 +6,7 @@ import sys
 import ubuntu_lint
 
 from dput.changes import Changes
+from dput.core import logger
 from dput.exceptions import HookException
 from dput.interfaces.cli import CLInterface
 from typing import Callable
@@ -26,7 +27,7 @@ def call_lint_as_hook(
         msg = str(e)
 
         if e.result == ubuntu_lint.LintResult.SKIP:
-            interface.message("SKIP", str(e))
+            logger.debug(f"skipping {lint.__name__}: {msg}")
             return
 
         if can_ignore and sys.stdin.isatty():
