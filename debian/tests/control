@@ -1,0 +1,6 @@
+Tests: pytest
+Depends:
+    @,
+    @builddeps@,
+    dput-ng,
+Restrictions: allow-stderr
