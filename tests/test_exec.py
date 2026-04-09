@@ -24,7 +24,17 @@ def get_top_level_dir() -> str:
 
 
 def get_ubuntu_lint_bin() -> str:
-    return os.path.join(get_testdata_dir(), "../../ubuntu-lint")
+    if os.getenv("TEST_AUTOPKGTEST") == "1":
+        return "/usr/bin/ubuntu-lint"
+
+    return os.path.join(get_top_level_dir(), "ubuntu-lint")
+
+
+def get_dput_dir() -> str:
+    if os.getenv("TEST_AUTOPKGTEST") == "1":
+        return "/etc/dput.d"
+
+    return os.path.join(get_top_level_dir(), "dput.d")
 
 
 def get_defined_testcases() -> list[str]:
@@ -116,82 +126,64 @@ def test_exec_cli_expect_fail(name: str, changes: str, changelog: str):
     assert out[name]["result"] == "FAIL"
 
 
+def run_dput_hook_with_tmpdir(name: str, changes: str) -> subprocess.CompletedProcess:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Copy the hook under test to the temporary .dput.d
+        dput_hooks_dir = os.path.join(tmpdir, ".dput.d/hooks")
+        os.makedirs(dput_hooks_dir, exist_ok=True)
+        hook = os.path.join(get_dput_dir(), f"hooks/{name}.json")
+        shutil.copy2(hook, dput_hooks_dir)
+
+        # Create the temporary ubuntu.json profile
+        dput_profile = os.path.join(tmpdir, ".dput.d/profiles/ubuntu.json")
+        os.makedirs(os.path.dirname(dput_profile), exist_ok=True)
+        with open(dput_profile, "w") as f:
+            f.write(f'{{"hooks": [ "{name}" ] }}')
+
+        changes_file = os.path.join(tmpdir, "test.changes")
+        shutil.copy2(changes, changes_file)
+
+        # Prepare environment for dput-ng
+        dput_env = os.environ.copy()
+        dput_env["HOME"] = tmpdir
+
+        if os.getenv("TEST_AUTOPKGTEST") != "1":
+            dput_env["PYTHONPATH"] = get_top_level_dir()
+
+        return subprocess.run(
+            [
+                "dput",
+                "--check-only",  # Perform pre-upload hooks only
+                "--unchecked",  # Do not check signature
+                "ubuntu",
+                changes_file,
+            ],
+            capture_output=True,
+            env=dput_env,
+        )
+
+
 @pytest.mark.skipif(shutil.which("dput") is None, reason="dput-ng is not installed")
 @pytest.mark.parametrize(
     "name", [name for name, _ in get_defined_testscase_with_changes()]
 )
 def test_dput_hook(name: str):
-    changes = os.path.join(get_testdata_dir(), "baseline/changes")
+    r = run_dput_hook_with_tmpdir(
+        name,
+        os.path.join(get_testdata_dir(), "baseline/changes"),
+    )
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        dput_hooks_dir = os.path.join(tmpdir, ".dput.d/hooks")
-        dput_profiles_dir = os.path.join(tmpdir, ".dput.d/profiles")
-
-        os.makedirs(dput_hooks_dir, exist_ok=True)
-        os.makedirs(dput_profiles_dir, exist_ok=True)
-
-        hook = os.path.join(get_top_level_dir(), f"dput.d/hooks/{name}.json")
-        shutil.copy2(hook, dput_hooks_dir)
-
-        changes_file = os.path.join(tmpdir, "test.changes")
-        shutil.copy2(changes, changes_file)
-
-        with open(os.path.join(dput_profiles_dir, "ubuntu.json"), "w") as f:
-            f.write(f'{{"hooks": [ "{name}" ] }}')
-
-        r = subprocess.run(
-            [
-                "dput",
-                "--check-only",  # Perform pre-upload hooks only
-                "--unchecked",  # Do not check signature
-                "ubuntu",
-                changes_file,
-            ],
-            capture_output=True,
-            env={
-                "HOME": tmpdir,
-                "PYTHONPATH": get_top_level_dir(),
-            },
-        )
-        assert r.returncode == 0
-        assert f"running {name}:" in r.stderr.decode()
+    assert r.returncode == 0
+    assert f"running {name}:" in r.stderr.decode()
 
 
 @pytest.mark.skipif(shutil.which("dput") is None, reason="dput-ng is not installed")
 @pytest.mark.parametrize("name, changes", get_defined_testscase_with_changes())
 def test_dput_hook_expect_fail(name: str, changes: str):
-    with tempfile.TemporaryDirectory() as tmpdir:
-        dput_hooks_dir = os.path.join(tmpdir, ".dput.d/hooks")
-        dput_profiles_dir = os.path.join(tmpdir, ".dput.d/profiles")
+    r = run_dput_hook_with_tmpdir(name, changes)
 
-        os.makedirs(dput_hooks_dir, exist_ok=True)
-        os.makedirs(dput_profiles_dir, exist_ok=True)
+    assert r.returncode != 0
 
-        hook = os.path.join(get_top_level_dir(), f"dput.d/hooks/{name}.json")
-        shutil.copy2(hook, dput_hooks_dir)
-
-        changes_file = os.path.join(tmpdir, "test.changes")
-        shutil.copy2(changes, changes_file)
-
-        with open(os.path.join(dput_profiles_dir, "ubuntu.json"), "w") as f:
-            f.write(f'{{"hooks": [ "{name}" ] }}')
-
-        r = subprocess.run(
-            [
-                "dput",
-                "--check-only",  # Perform pre-upload hooks only
-                "--unchecked",  # Do not check signature
-                "ubuntu",
-                changes_file,
-            ],
-            capture_output=True,
-            env={
-                "HOME": tmpdir,
-                "PYTHONPATH": get_top_level_dir(),
-            },
-        )
-        assert r.returncode != 0
-
-        out = r.stderr.decode()
-        assert f"running {name}:" in out
-        assert "ERROR:" in out
+    out = r.stderr.decode()
+    assert f"running {name}:" in out
+    assert "ERROR:" in out
