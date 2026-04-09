@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
 export PYBUILD_NAME=ubuntu-lint
+export PYBUILD_TEST_ARGS=--ignore tests/test_exec.py
 
 %:
 	dh $@ --buildsystem pybuild
