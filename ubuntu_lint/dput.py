@@ -20,7 +20,10 @@ def call_lint_as_hook(
     interface: CLInterface,
     can_ignore: bool = False,
 ):
-    context = ubuntu_lint.Context(changes=changes.get_raw_changes())
+    context = ubuntu_lint.Context(
+        changes=changes.get_raw_changes(),
+        changes_path=changes.get_changes_file(),
+    )
     try:
         lint(context)
     except ubuntu_lint.LintException as e:
@@ -190,4 +193,17 @@ def dput_missing_version_suffix(
         changes,
         profile,
         interface,
+    )
+
+
+def dput_extraneous_bad_files(changes: Changes, profile: dict, interface: CLInterface):
+    """
+    Hook wrapper around ubuntu_lint.check_extraneous_bad_files.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_extraneous_bad_files,
+        changes,
+        profile,
+        interface,
+        can_ignore=True,
     )

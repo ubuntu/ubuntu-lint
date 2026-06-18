@@ -1,12 +1,66 @@
 # Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: GPL-3.0-only
+import tarfile
 
 import distro_info
 import re
 import requests
+from pathlib import Path
 
 from debian import changelog, debian_support
 from ubuntu_lint import Context, MissingContextException
+
+
+def check_extraneous_bad_files(context: Context):
+    """
+    Check if the package contains some well known cache files that should have
+    been cleaned.
+    """
+
+    def _get_bad_files(files: list[str]) -> list[str]:
+        bad_files = []
+        for f in files:
+            for cache_file in [
+                # General
+                "CACHEDIR.TAG",
+                ".direnv",
+                "/.git/",  # XXX: that one is kind of a problem when `ubuntu-lint` is invoked as a CLI in a git repo. Maybe we should see to activate that only for the `dput` hook?
+                # Python
+                ".pyc",
+                ".egg-info",
+                ".tox",
+                "__pycache__",
+            ]:
+                if cache_file in f:
+                    bad_files.append(f"{f} (has '{cache_file}')")
+        return bad_files
+
+    bad_files = []
+
+    try:
+        # Case where we directly have the source_dir
+        files = [str(p) for p in Path(context.source_dir).absolute().glob("**")]
+        print(files)
+        bad_files += _get_bad_files(files)
+    except MissingContextException:
+        pass
+
+    try:
+        # Case of a .changes file and we need to read the tarballs
+        changes_files = context.changes.get("Files")
+        if changes_files:
+            for item in changes_files:
+                if ".tar." in item["name"]:
+                    file_path = context.changes_path.parent / item["name"]
+                    with tarfile.open(file_path, "r") as tar:
+                        bad_files += _get_bad_files(tar.getnames())
+    except MissingContextException:
+        pass
+
+    if bad_files:
+        context.lint_warn(
+            f"Package seems to contain unwanted files:\n{'\n'.join(bad_files)}\n"
+        )
 
 
 def check_missing_ubuntu_maintainer(context: Context):

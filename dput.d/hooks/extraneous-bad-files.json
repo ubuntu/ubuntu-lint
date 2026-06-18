@@ -1,0 +1,5 @@
+{
+    "description": "check for extraneous bad files",
+    "path": "ubuntu_lint.dput.dput_extraneous_bad_files",
+    "pre": true
+}
