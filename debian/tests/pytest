@@ -7,4 +7,6 @@ cp pyproject.toml "$AUTOPKGTEST_TMP"
 cp -r tests/ "$AUTOPKGTEST_TMP"
 cd "$AUTOPKGTEST_TMP"
 
-pytest
+for py in $(py3versions --supported); do
+    $py -m pytest -v
+done
