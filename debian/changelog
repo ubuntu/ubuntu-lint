@@ -1,5 +1,5 @@
-ubuntu-lint (0.1.0ubuntu) UNRELEASED; urgency=medium
+ubuntu-lint (0.1.0ubuntu) stonking; urgency=medium
 
-  * Initial release.
+  * Initial release (LP: #2158014).
 
- -- Nick Rosbrook <enr0n@ubuntu.com>  Tue, 27 Jan 2026 11:36:22 -0500
+ -- Nick Rosbrook <enr0n@ubuntu.com>  Tue, 23 Jun 2026 14:40:42 -0400
