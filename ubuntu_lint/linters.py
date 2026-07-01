@@ -422,3 +422,36 @@ def check_sru_version_string_convention(context: Context):
             f"{next_version} does not match expected version {expect}, "
             f"see {docs} for expected version string conventions"
         )
+
+
+def check_missing_version_suffix(context: Context):
+    """
+    Checks that an upload targeting Ubuntu contains "ubuntu" or "build" in the version.
+    """
+    docs = "https://documentation.ubuntu.com/project/how-ubuntu-is-made/concepts/version-strings"
+
+    if not distro_info.UbuntuDistroInfo().valid(context.get_series()):
+        context.lint_skip("upload is not targeting an Ubuntu series")
+
+    version = context.get_package_version()
+
+    match = re.search(
+        r"[0-9]+([a-zA-Z]+)([0-9]*)",
+        version.debian_version or version.full_version or "",
+    )
+
+    if (
+        not match
+        or match.group(1) not in ("ubuntu", "build")
+        or (
+            # For native packages, it's fine to have "ubuntu" without the suffix (and is
+            # recommended for Ubuntu-only native packages), but a number is always required
+            # for "build".
+            not match.group(2)
+            and (version.debian_version or match.group(1) == "build")
+        )
+    ):
+        context.lint_fail(
+            f"version {version.full_version} is missing a proper 'ubuntuX' or 'buildX' "
+            f"suffix, please check {docs} to ensure version string is correct"
+        )

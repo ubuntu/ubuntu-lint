@@ -4,6 +4,7 @@
 import copy
 import pytest
 import ubuntu_lint
+import re
 import textwrap
 
 from debian import deb822, changelog
@@ -444,3 +445,82 @@ def test_check_release_mismatch():
                 match=f"ubuntu version {version} contains {given_version} which does not match target \\({target_series} {target_version}\\)",
             ):
                 ubuntu_lint.check_release_mismatch(context)
+
+
+@pytest.mark.parametrize(
+    "version, expect_pass",
+    [
+        # Pass
+        ("1.2.3-0ubuntu1", True),
+        ("1.2.3-0ubuntu1.1", True),
+        ("1.2.3-1ubuntu2", True),
+        ("1.2.3-1ubuntu2~22.04.1", True),
+        ("1.0ubuntu", True),
+        ("1.2.3-0build1", True),
+        ("1.2.3-1build2", True),
+        ("20200505dfsg0-5ubuntu1", True),
+        ("2.3+dfsg-1ubuntu2", True),
+        ("2.3.7+git20230731.5fc64cde+dfsg-4ubuntu1", True),
+        ("2.0ubuntu.build1", True),
+        ("1.0build1", True),
+        # Fail
+        ("1.2.3-1", False),
+        ("1.2.3-0ubunut1.1", False),
+        ("1.2.3-1ubunt2", False),
+        ("1.2.3-1ubuntuu2~22.04.1", False),
+        ("1.0", False),
+        ("1.2.3-0maysync1", False),
+        ("20200505dfsg0-5", False),
+        ("2.3.7+git20230731.5fc64cde+dfsg-4", False),
+        ("1.0build", False),
+        ("1.2-3ubuntu", False),
+    ],
+)
+def test_check_missing_version_suffix(version: str, expect_pass: bool):
+    changelog_tmpl = """hello ({version}) resolute; urgency=medium
+
+  * Fix a bug (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Wed, 11 Mar 2026 16:01:41 -0400
+ """
+    debian_changelog = changelog.Changelog(changelog_tmpl.format(version=version))
+    context_changelog = ubuntu_lint.Context(debian_changelog=debian_changelog)
+
+    changes = copy.deepcopy(basic_changes_ubuntu_delta)
+    changes["Version"] = version
+    context_changes = ubuntu_lint.Context(changes=changes)
+
+    if expect_pass:
+        ubuntu_lint.check_missing_version_suffix(context_changelog)
+        ubuntu_lint.check_missing_version_suffix(context_changes)
+    else:
+        with pytest.raises(
+            ubuntu_lint.LintException,
+            match=re.escape(
+                f"version {version} is missing a proper 'ubuntuX' or 'buildX' suffix"
+            ),
+        ):
+            ubuntu_lint.check_missing_version_suffix(context_changelog)
+            ubuntu_lint.check_missing_version_suffix(context_changes)
+
+
+def test_check_missing_version_suffix_debian_upload():
+    changelog_tmpl = """hello (1.2.3-4) unstable; urgency=medium
+
+  * Fix a bug (Closes: #12345678)
+
+ -- John Doe <john.doe@example.com>  Wed, 11 Mar 2026 16:01:41 -0400
+ """
+    context_changelog = ubuntu_lint.Context(
+        debian_changelog=changelog.Changelog(changelog_tmpl)
+    )
+    context_changes = ubuntu_lint.Context(changes=basic_changes_no_ubuntu_delta)
+
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match="upload is not targeting an Ubuntu series",
+    ) as e:
+        ubuntu_lint.check_missing_version_suffix(context_changelog)
+        ubuntu_lint.check_missing_version_suffix(context_changes)
+
+    assert e.value.result == ubuntu_lint.LintResult.SKIP

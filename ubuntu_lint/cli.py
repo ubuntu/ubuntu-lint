@@ -166,6 +166,12 @@ all_linters = [
         default_level_devel=ubuntu_lint.LintResult.WARN,
         default_level_stable=ubuntu_lint.LintResult.WARN,
     ),
+    LinterConfiguration(
+        name="missing-version-suffix",
+        fn=ubuntu_lint.check_missing_version_suffix,
+        default_level_devel=ubuntu_lint.LintResult.FAIL,
+        default_level_stable=None,
+    ),
 ]
 all_linters_by_name = {linter.name: linter for linter in all_linters}
 
