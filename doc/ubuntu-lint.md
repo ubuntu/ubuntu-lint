@@ -93,6 +93,9 @@ For SRU uploads, checks if the version string follows Ubuntu and SRU conventions
 ## release-mismatch
 Attempts to detect inconsistencies in the version string and series name, e.g. `1.2.3-0ubuntu1~22.04.1` and `noble` (because the `~22.04.1` looks like it is meant for Ubuntu 22.04 LTS "Jammy Jellyfish", and `noble` refers to Ubuntu 24.04 LTS "Noble Numbat").
 
+## missing-version-suffix
+Detects when an upload for Ubuntu is missing an appropriate version string suffix, e.g. "ubuntuX" or "buildX".
+
 See `ubuntu-lint --help` for the complete list.
 
 # DPUT-NG HOOKS
