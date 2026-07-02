@@ -1,0 +1,5 @@
+{
+    "description": "check if Ubuntu changes are missing an appropriate version suffix",
+    "path": "ubuntu_lint.dput.dput_missing_version_suffix",
+    "pre": true
+}
