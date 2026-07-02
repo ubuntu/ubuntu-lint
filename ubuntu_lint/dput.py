@@ -177,3 +177,17 @@ def dput_sru_version_string_breaks_upgrades(
         interface,
         can_ignore=True,
     )
+
+
+def dput_missing_version_suffix(
+    changes: Changes, profile: dict, interface: CLInterface
+):
+    """
+    Hook wrapper around ubuntu_lint.check_missing_version_suffix.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_missing_version_suffix,
+        changes,
+        profile,
+        interface,
+    )
