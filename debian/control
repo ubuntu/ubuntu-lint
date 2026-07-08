@@ -25,6 +25,8 @@ Depends:
  ${misc:Depends},
  ${python3:Depends},
  python3-ubuntu-lint (= ${binary:Version}),
+Recommends:
+ dput-ng,
 Description: linter for Ubuntu packaging workflows
  ubuntu-lint is a CLI linter for Ubuntu packaging. It operates on source
  packages, and is designed to be used by uploaders and reviewers alike.
