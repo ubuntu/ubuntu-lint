@@ -287,7 +287,7 @@ def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
             context.lint_error(f"Unexpected line from rmadison: {line}")
 
         version = values[1]
-        suite = values[2]
+        suite = values[2].partition("/")[0]
         series, _, pocket = suite.partition("-")
 
         if pocket == "backports":

@@ -231,9 +231,9 @@ hello (2.10-5ubuntu1) uffda; urgency=medium
 def test_check_sru_version_string_breaks_upgrades(requests_mock):
     package = basic_changes_sru.get("Source")
 
-    requests_mock.get(
-        f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on",
-        text=textwrap.dedent("""hello | 2.8-4         | trusty          | source
+    rmadison_tmpls = [
+        # Package in main
+        textwrap.dedent("""hello | 2.8-4         | trusty          | source
                hello | 2.10-1        | xenial          | source
                hello | 2.10-1build1  | bionic          | source
                hello | 2.10-1build3  | bionic-security | source
@@ -244,18 +244,36 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
                hello | 2.10-5        | questing        | source
                hello | 2.10-5build1  | resolute        | source
         """),
-    )
-    ubuntu_lint.check_sru_version_string_breaks_upgrades(
-        ubuntu_lint.Context(changes=basic_changes_sru)
-    )
+        # Package in universe
+        textwrap.dedent("""hello | 2.8-4         | trusty/universe          | source
+               hello | 2.10-1        | xenial/universe          | source
+               hello | 2.10-1build1  | bionic/universe          | source
+               hello | 2.10-1build3  | bionic-security/universe | source
+               hello | 2.10-1build3  | bionic-updates/universe  | source
+               hello | 2.10-2ubuntu2 | focal/universe           | source
+               hello | 2.10-2ubuntu4 | jammy/universe           | source
+               hello | 2.10-3build1  | noble/universe           | source
+               hello | 2.10-5        | questing/universe        | source
+               hello | 2.10-5build1  | resolute/universe        | source
+        """),
+    ]
 
-    # Simulate a version bump in noble that is greater than questing.
-    changes_bad_version = copy.deepcopy(basic_changes_sru)
-    changes_bad_version["Version"] = "2.10-5ubuntu0.1"
-    with pytest.raises(ubuntu_lint.LintException):
-        ubuntu_lint.check_sru_version_string_breaks_upgrades(
-            ubuntu_lint.Context(changes=changes_bad_version)
+    for tmpl in rmadison_tmpls:
+        requests_mock.get(
+            f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on",
+            text=tmpl,
         )
+        ubuntu_lint.check_sru_version_string_breaks_upgrades(
+            ubuntu_lint.Context(changes=basic_changes_sru)
+        )
+
+        # Simulate a version bump in noble that is greater than questing.
+        changes_bad_version = copy.deepcopy(basic_changes_sru)
+        changes_bad_version["Version"] = "2.10-5ubuntu0.1"
+        with pytest.raises(ubuntu_lint.LintException):
+            ubuntu_lint.check_sru_version_string_breaks_upgrades(
+                ubuntu_lint.Context(changes=changes_bad_version)
+            )
 
 
 def test_check_sru_version_string_convention(requests_mock):
