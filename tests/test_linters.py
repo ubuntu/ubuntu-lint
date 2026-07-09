@@ -754,3 +754,38 @@ Any code that initializes the application could be affected.
                     changes=basic_changes_sru, launchpad_handle=mock_lp_handle
                 )
             )
+
+
+def test_check_sru_bug_missing_release_tasks(mock_lp_handle, add_bug_mock):
+    bug_number = basic_changes_sru["Launchpad-Bugs-Fixed"].split()[0]
+    dist = basic_changes_sru["Distribution"]
+    package = basic_changes_sru["Source"]
+
+    mock_series = mock_lp_handle.getSeries.return_value
+    series_url = f"https://api.launchpad.net/1.0/ubuntu/{dist}"
+    mock_series.__str__.return_value = series_url
+
+    mock_bug_with_task = add_bug_mock(
+        bug_number,
+        bug_tasks=[
+            f"https://api.launchpad.net/1.0/ubuntu/{dist}/+source/{package}/+bug/{bug_number}"
+        ],
+    )
+    mock_lp_handle.bugs = {bug_number: mock_bug_with_task}
+
+    ubuntu_lint.check_sru_bug_missing_release_tasks(
+        ubuntu_lint.Context(changes=basic_changes_sru, launchpad_handle=mock_lp_handle)
+    )
+
+    mock_bug_missing_task = add_bug_mock(bug_number, bug_tasks=[])
+    mock_lp_handle.bugs = {bug_number: mock_bug_missing_task}
+
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=re.escape(f"LP: #{bug_number} is missing a bug task for noble"),
+    ):
+        ubuntu_lint.check_sru_bug_missing_release_tasks(
+            ubuntu_lint.Context(
+                changes=basic_changes_sru, launchpad_handle=mock_lp_handle
+            )
+        )
