@@ -39,6 +39,14 @@ Files:
  c16ad903c1291cb24da33abd6a782419 5943 devel optional hello_2.10-5_source.buildinfo
 """)
 
+basic_changelog_no_ubuntu_delta = changelog.Changelog(file="""
+hello (2.10-5) unstable; urgency=medium
+
+  * Testing
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
 basic_changes_ubuntu_delta = deb822.Changes("""
 Format: 1.8
 Date: Mon, 26 Jan 2026 15:13:02 -0500
@@ -73,13 +81,27 @@ Vcs-Git-Commit: 6e591bb3a2bbc44dcb6f49499dc7dbee400ce5b9
 Vcs-Git-Ref: refs/heads/testing
 """)
 
+basic_changelog_ubuntu_delta = changelog.Changelog(file="""
+hello (2.10-5ubuntu1) resolute; urgency=medium
+
+  * Testing (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Tue, 27 Jan 2026 15:13:02 -0500
+
+hello (2.10-5) unstable; urgency=medium
+
+  * Testing
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
 basic_changes_ubuntu_extra_changelog = deb822.Changes("""
 Format: 1.8
 Date: Mon, 26 Jan 2026 15:13:02 -0500
 Source: hello
 Built-For-Profiles: noudeb
 Architecture: source
-Version: 2.10-5ubuntu1
+Version: 2.10-5ubuntu2
 Distribution: resolute
 Urgency: medium
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
@@ -111,6 +133,26 @@ Vcs-Git-Commit: 6e591bb3a2bbc44dcb6f49499dc7dbee400ce5b9
 Vcs-Git-Ref: refs/heads/testing
 """)
 
+basic_changelog_ubuntu_extra_changelog = changelog.Changelog(file="""
+hello (2.10-5ubuntu2) resolute; urgency=medium
+
+  * Fix mistake in previous upload
+
+ -- John Doe <john.doe@example.com>  Tue, 27 Jan 2026 18:13:02 -0500
+
+hello (2.10-5ubuntu1) resolute; urgency=medium
+
+  * Testing (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Tue, 27 Jan 2026 15:13:02 -0500
+
+hello (2.10-5) unstable; urgency=medium
+
+  * Testing
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
 basic_changes_sru = deb822.Changes("""
 Format: 1.8
 Date: Wed, 11 Mar 2026 16:01:41 -0400
@@ -140,6 +182,95 @@ Files:
  2be6a13bd3827fa7a051fb1b52d37672 12876 devel optional hello_2.10-3ubuntu0.1.debian.tar.xz
  2b095557f297d3f85e85a72363dd1019 6025 devel optional hello_2.10-3ubuntu0.1_source.buildinfo
 Original-Maintainer: Santiago Vila <sanvila@debian.org>
+""")
+
+basic_changelog_sru = changelog.Changelog(file="""
+hello (2.10-3ubuntu0.1) noble; urgency=medium
+
+  * Fix a bug (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Tue, 27 Jan 2026 18:13:02 -0500
+
+hello (2.10-3) unstable; urgency=medium
+
+  * Testing
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
+basic_changes_merge = deb822.Changes("""
+Format: 1.8
+Date: Wed, 11 Mar 2026 16:01:41 -0400
+Source: hello
+Built-For-Profiles: noudeb
+Architecture: source
+Version: 2.12-1ubuntu1
+Distribution: resolute
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: John Doe <john.doe@example.com>
+Launchpad-Bugs-Fixed: 12345678
+Changes:
+ hello (2.12-1ubuntu1) resolute; urgency=medium
+ .
+   * Merge from Debian unstable (LP: #12345678)
+ .
+ hello (2.12-1) unstable; urgency=medium
+ .
+   * New upstream release
+ .
+ hello (2.11-2) unstable; urgency=medium
+ .
+   * Fix a bug
+ .
+ hello (2.11-1) unstable; urgency=medium
+ .
+   * New upstream release
+Checksums-Sha1:
+ f69ac22584593891440e320777ccb038568c6809 1298 hello_2.12-1ubuntu1.dsc
+ 5eea7226f111d7a874b0b2a7d4586dee3bb9707a 12876 hello_2.12-1ubuntu1.debian.tar.xz
+ d503db0bad6eb221f1cb96d8fea3d396dc4c2e01 6025 hello_2.12-1ubuntu1_source.buildinfo
+Checksums-Sha256:
+ fe698e4496f18a6575fdbb2bc79bd97289b26d1838da88271f285b9c2a625d84 1298 hello_2.12-1ubuntu1.dsc
+ 37df32119bebf1af5ae8cd793f85a712233b1a5e055d0a517c3a483074255735 12876 hello_2.12-1ubuntu1.debian.tar.xz
+ 03c853b26f1fe5d8ec43831462ceea0d714e0b77f1f253909419f8dc1667c449 6025 hello_2.12-1ubuntu1_source.buildinfo
+Files:
+ 1d4d7dc915ed16973febc95ae80d73ed 1298 devel optional hello_2.12-1ubuntu1.dsc
+ 2be6a13bd3827fa7a051fb1b52d37672 12876 devel optional hello_2.12-1ubuntu1.debian.tar.xz
+ 2b095557f297d3f85e85a72363dd1019 6025 devel optional hello_2.12-1ubuntu1_source.buildinfo
+Original-Maintainer: Joe Schmoe <joe.schmoe@debian.org>
+""")
+
+basic_changelog_merge = changelog.Changelog(file="""
+hello (2.12-1ubuntu1) resolute; urgency=medium
+
+  * Merge from Debian unstable (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+
+hello (2.12-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Joe Schmoe <joe.schmoe@debian.org>  Mon, 19 Jan 2026 15:13:02 -0500
+
+hello (2.11-2) unstable; urgency=medium
+
+  * Fix a bug
+
+ -- Joe Schmoe <joe.schmoe@debian.org>  Mon, 12 Jan 2026 15:13:02 -0500
+
+hello (2.11-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Joe Schmoe <joe.schmoe@debian.org>  Mon, 05 Jan 2026 15:13:02 -0500
+
+hello (2.10-2ubuntu2) resolute; urgency=medium
+
+  * Fix a bug (LP: #12345679)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
 """)
 
 
@@ -789,3 +920,60 @@ def test_check_sru_bug_missing_release_tasks(mock_lp_handle, add_bug_mock):
                 changes=basic_changes_sru, launchpad_handle=mock_lp_handle
             )
         )
+
+
+def test_check_merge_missing_new_debian_changelog():
+    ubuntu_lint.check_merge_missing_new_debian_changelog(
+        ubuntu_lint.Context(
+            changes=basic_changes_merge,
+            debian_changelog=basic_changelog_merge,
+        )
+    )
+
+    # Trim the changes, it should now fail.
+    bad_changes = copy.deepcopy(basic_changes_merge)
+    bad_changes["Changes"] = """
+ hello (2.12-1ubuntu1) resolute; urgency=medium
+ .
+   * Merge from Debian unstable (LP: #12345678)"""
+
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match="source package should be built with -v2.10-2ubuntu2",
+    ):
+        ubuntu_lint.check_merge_missing_new_debian_changelog(
+            ubuntu_lint.Context(
+                changes=bad_changes,
+                debian_changelog=basic_changelog_merge,
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "changes, debian_changelog",
+    [
+        (basic_changes_no_ubuntu_delta, basic_changelog_no_ubuntu_delta),
+        (basic_changes_ubuntu_delta, basic_changelog_ubuntu_delta),
+        (basic_changes_ubuntu_extra_changelog, basic_changelog_ubuntu_extra_changelog),
+        (basic_changes_sru, basic_changelog_sru),
+    ],
+    ids=[
+        "no_delta",
+        "delta",
+        "extra_changelog",
+        "sru",
+    ],
+)
+def test_check_merge_missing_new_debian_changelog_skip(
+    changes: deb822.Changes,
+    debian_changelog: changelog.Changelog,
+):
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match="upload does not look like a merge",
+    ) as e:
+        ubuntu_lint.check_merge_missing_new_debian_changelog(
+            ubuntu_lint.Context(changes=changes, debian_changelog=debian_changelog)
+        )
+
+    assert e.value.result == ubuntu_lint.LintResult.SKIP

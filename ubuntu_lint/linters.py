@@ -460,3 +460,61 @@ def check_missing_version_suffix(context: Context):
             f"version {version.full_version} is missing a proper 'ubuntuX' or 'buildX' "
             f"suffix, please check {docs} to ensure version string is correct"
         )
+
+
+def check_merge_missing_new_debian_changelog(context: Context):
+    """
+    Checks that if an upload looks like a merge, it contains the Debian changelog
+    entries too.
+    """
+    new_version = context.get_package_version()
+    if "ubuntu" not in str(new_version):
+        context.lint_skip("upload does not look like a merge")
+
+    # Ensure that all changelog entries in the interval (previous, current]
+    # are included in the changes file. This could also be done using
+    # rmadison data, but generally the worst case here (parsing the entire
+    # changelog to find no Ubuntu delta) is still faster than rmadison.
+    di = distro_info.UbuntuDistroInfo()
+    old_version: debian_support.Version | None = None
+    index = 1
+    expect: set[str] = {str(new_version)}
+    while True:
+        try:
+            entry = context.changelog_entry_by_index(index)
+
+            if di.valid(str(entry.distributions).partition("-")[0]):
+                old_version = entry.version
+                break
+
+            expect.add(str(entry.version))
+            index += 1
+
+        except IndexError:
+            # We hit the end of the changelog without finding an upload
+            # targeting Ubuntu.
+            context.lint_skip("upload does not look like a merge")
+
+    if "ubuntu" not in str(old_version):
+        context.lint_skip("upload does not look like a merge")
+
+    old_debian = str(old_version).partition("ubuntu")[0]
+    new_debian = str(new_version).partition("ubuntu")[0]
+    if debian_support.version_compare(old_debian, new_debian) >= 0:
+        context.lint_skip("upload does not look like a merge")
+
+    # Mangle the Changes field so that we can parse it like a changelog.
+    package = context.get_source_package_name()
+    s = context.changes.get_as_string("Changes")
+    s = s.replace(f"\n .\n {package}", f"\n  --\n {package}")
+    s = s + "\n  --\n"
+    lines = ["" if v == " ." else v[1:] for v in s.splitlines()]
+
+    ch = changelog.Changelog(lines, allow_empty_author=True)
+    changes_versions = set([str(v) for v in ch.get_versions()])
+
+    if changes_versions != expect:
+        context.lint_fail(
+            f"source package should be built with -v{old_version} "
+            "to include Debian changelog since last merge"
+        )
