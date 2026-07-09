@@ -172,6 +172,13 @@ all_linters = [
         default_level_devel=ubuntu_lint.LintResult.FAIL,
         default_level_stable=None,
     ),
+    LinterConfiguration(
+        name="merge-missing-new-debian-changelog",
+        fn=ubuntu_lint.check_merge_missing_new_debian_changelog,
+        default_level_devel=ubuntu_lint.LintResult.FAIL,
+        default_level_stable=None,
+        requires={"changelog", "changes"},
+    ),
 ]
 all_linters_by_name = {linter.name: linter for linter in all_linters}
 
