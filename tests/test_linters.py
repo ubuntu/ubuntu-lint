@@ -682,3 +682,75 @@ def test_check_missing_pending_changelog_entry_ignore_syncs(
             launchpad_handle=mock_lp_handle,
         )
     )
+
+
+@pytest.fixture
+def add_bug_mock(mocker):
+    def _add_bug_mock(bug_id, description="", bug_tasks=None):
+        mock_bug = mocker.MagicMock()
+        mock_bug.description = description
+        mock_bug.bug_tasks = bug_tasks or []
+        return mock_bug
+
+    return _add_bug_mock
+
+
+def test_check_sru_bug_missing_template(mock_lp_handle, add_bug_mock):
+    bug_number = basic_changes_sru["Launchpad-Bugs-Fixed"].split()[0]
+
+    impact = """
+[Impact]
+The application crashes on startup.
+"""
+    test_plan = """
+[Test Plan]
+1. Install the package
+2. Run the application
+3. Verify it starts without crashing
+"""
+
+    where_problems_could_occur = """
+[Where Problems Could Occur]
+Any code that initializes the application could be affected.
+"""
+
+    for impact_stanza, test_plan_stanza, where_problems_could_occur_stanza in [
+        (impact, test_plan, where_problems_could_occur),
+        (impact, test_plan, ""),
+        (impact, "", ""),
+        ("", "", ""),
+    ]:
+        bug_description = (
+            f"{impact_stanza}\n{test_plan_stanza}\n{where_problems_could_occur_stanza}"
+        )
+
+        mock_bug = add_bug_mock(bug_number, description=bug_description)
+        mock_lp_handle.bugs = {bug_number: mock_bug}
+
+        if not all(
+            (impact_stanza, test_plan_stanza, where_problems_could_occur_stanza)
+        ):
+            if not impact_stanza:
+                section = "Impact"
+            elif not test_plan_stanza:
+                section = "Test Plan"
+            else:
+                section = "Where Problems Could Occur"
+
+            with pytest.raises(
+                ubuntu_lint.LintException,
+                match=re.escape(
+                    f"bug {bug_number} description is missing the [{section}] section"
+                ),
+            ):
+                ubuntu_lint.check_sru_bug_missing_template(
+                    ubuntu_lint.Context(
+                        changes=basic_changes_sru, launchpad_handle=mock_lp_handle
+                    )
+                )
+        else:
+            ubuntu_lint.check_sru_bug_missing_template(
+                ubuntu_lint.Context(
+                    changes=basic_changes_sru, launchpad_handle=mock_lp_handle
+                )
+            )
