@@ -73,6 +73,44 @@ Vcs-Git-Commit: 6e591bb3a2bbc44dcb6f49499dc7dbee400ce5b9
 Vcs-Git-Ref: refs/heads/testing
 """)
 
+basic_changes_ubuntu_extra_changelog = deb822.Changes("""
+Format: 1.8
+Date: Mon, 26 Jan 2026 15:13:02 -0500
+Source: hello
+Built-For-Profiles: noudeb
+Architecture: source
+Version: 2.10-5ubuntu1
+Distribution: resolute
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: John Doe <john.doe@example.com>
+Launchpad-Bugs-Fixed: 12345678
+Changes:
+ hello (2.10-5ubuntu2) resolute; urgency=medium
+ .
+   * Fix mistake in previous upload
+ .
+ hello (2.10-5ubuntu1) resolute; urgency=medium
+ .
+   * Fix a bug (LP: #12345678)
+Checksums-Sha1:
+ 4e2e0717e96715704d311a89b7b7b7e4677b3726 1305 hello_2.10-5ubuntu1.dsc
+ 7328d4a18da70228074e05e21109dd998f61a539 13228 hello_2.10-5ubuntu1.debian.tar.xz
+ 1bce5b30cd93da2aa711705ae8354506aeaff759 5971 hello_2.10-5ubuntu1_source.buildinfo
+Checksums-Sha256:
+ c1eabb9f56c1bcb7f736a51641ae6d0cd2bc33364d0664303178e77152d33a86 1305 hello_2.10-5ubuntu1.dsc
+ 8136bb2298cd2ab40a333ed58848ccff067315dd872e59056177e55a5727c460 13228 hello_2.10-5ubuntu1.debian.tar.xz
+ 944f72673ac9b04d7fecd3c317bbdd66551df8eb20a74faa79a104f590926b45 5971 hello_2.10-5ubuntu1_source.buildinfo
+Files:
+ f6ae5ebd0add2f6510e985d591100c3b 1305 devel optional hello_2.10-5ubuntu1.dsc
+ a12ce1144993b3e0910b552dbb7b5ab6 13228 devel optional hello_2.10-5ubuntu1.debian.tar.xz
+ c7d4f3688fa4fde9388a5a2fef0065e6 5971 devel optional hello_2.10-5ubuntu1_source.buildinfo
+Original-Maintainer: Santiago Vila <sanvila@debian.org>
+Vcs-Git: https://git.launchpad.net/~ubuntu-core-dev/ubuntu/+source/hello
+Vcs-Git-Commit: 6e591bb3a2bbc44dcb6f49499dc7dbee400ce5b9
+Vcs-Git-Ref: refs/heads/testing
+""")
+
 basic_changes_sru = deb822.Changes("""
 Format: 1.8
 Date: Wed, 11 Mar 2026 16:01:41 -0400
@@ -542,3 +580,105 @@ def test_check_missing_version_suffix_debian_upload():
         ubuntu_lint.check_missing_version_suffix(context_changes)
 
     assert e.value.result == ubuntu_lint.LintResult.SKIP
+
+
+@pytest.fixture
+def mock_lp_handle(mocker):
+    mock_lp = mocker.MagicMock()
+    mock_series = mocker.MagicMock()
+
+    mock_lp.distributions.__getitem__.return_value = mock_lp
+    mock_lp.getSeries.return_value = mock_series
+    mock_lp.main_archive = mocker.MagicMock()
+
+    return mock_lp
+
+
+@pytest.fixture
+def add_published_source_mock(mocker):
+    def _add_published_source_mock(version, pocket="Release", status="Published"):
+        mock_published = mocker.MagicMock()
+        mock_published.pocket = pocket
+        mock_published.status = status
+        mock_published.source_package_version = version
+        return mock_published
+
+    return _add_published_source_mock
+
+
+def test_check_missing_pending_changelog_entry(
+    mock_lp_handle, add_published_source_mock
+):
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.10-5ubuntu1", pocket="Proposed"),
+    ]
+    # This changes file includes the changelog entry for version already in -proposed
+    ubuntu_lint.check_missing_pending_changelog_entry(
+        ubuntu_lint.Context(
+            changes=basic_changes_ubuntu_extra_changelog,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.10-4ubuntu2", pocket="Proposed"),
+    ]
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=r"published in proposed but have not migrated.*2.10-4ubuntu2",
+    ):
+        # This changes file does NOT include the changelog entry for the version in
+        # -proposed
+        ubuntu_lint.check_missing_pending_changelog_entry(
+            ubuntu_lint.Context(
+                changes=basic_changes_ubuntu_delta,
+                launchpad_handle=mock_lp_handle,
+            )
+        )
+
+
+def test_check_missing_pending_changelog_entry_skips_deleted(
+    mock_lp_handle, add_published_source_mock
+):
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.10-4ubuntu2", pocket="Proposed", status="Deleted"),
+    ]
+    # This changes file does not include the changelog entry that was in -proposed,
+    # because it was deleted from the archive
+    ubuntu_lint.check_missing_pending_changelog_entry(
+        ubuntu_lint.Context(
+            changes=basic_changes_ubuntu_delta,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+
+def test_check_missing_pending_changelog_entry_nothing_in_proposed(
+    mock_lp_handle, add_published_source_mock
+):
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.10-4ubuntu2"),
+    ]
+    # The previous upload migrated already
+    ubuntu_lint.check_missing_pending_changelog_entry(
+        ubuntu_lint.Context(
+            changes=basic_changes_ubuntu_delta,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+
+def test_check_missing_pending_changelog_entry_ignore_syncs(
+    mock_lp_handle, add_published_source_mock
+):
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.10-5", pocket="Proposed"),
+    ]
+    # This changes file does NOT include the changelog entry for the version in
+    # -proposed, because the previous version was a sync from Debian.
+    ubuntu_lint.check_missing_pending_changelog_entry(
+        ubuntu_lint.Context(
+            changes=basic_changes_ubuntu_delta,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
