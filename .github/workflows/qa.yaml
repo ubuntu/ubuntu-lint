@@ -1,51 +1,13 @@
 on: [push, pull_request]
 name: QA
 jobs:
-  black:
+  pre-commit:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
     - uses: actions/setup-python@v6
       with:
         python-version: '3.14'
-    - uses: snok/install-poetry@v1
-    - name: poetry install
-      run: poetry install
-    - name: black
-      run: poetry run black --check --diff .
-  flake8:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - uses: actions/setup-python@v6
-      with:
-        python-version: '3.14'
-    - uses: snok/install-poetry@v1
-    - name: poetry install
-      run: poetry install
-    - name: flake8
-      run: poetry run flake8 --ignore=E501,E203,W503
-  mypy:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - uses: actions/setup-python@v6
-      with:
-        python-version: '3.14'
-    - uses: snok/install-poetry@v1
-    - name: poetry install
-      run: poetry install
-    - name: mypy
-      run: poetry run mypy --check-untyped-defs . --exclude ubuntu_lint/dput.py
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - uses: actions/setup-python@v6
-      with:
-        python-version: '3.14'
-    - uses: snok/install-poetry@v1
-    - name: poetry install
-      run: poetry install
-    - name: pytest
-      run: poetry run pytest --verbose
+    - name: install dependencies
+      run: pip install pytest .
+    - uses: pre-commit/action@v3.0.1
