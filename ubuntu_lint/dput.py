@@ -49,12 +49,18 @@ def dput_ppa_version_string(changes: Changes, profile: dict, interface: CLInterf
     target = profile.get("name")
 
     if target == "ppa":
-        if not version_contains_ppa:
-            raise HookException(
-                format_error(
-                    "ERROR: upload to ppa does not include ~ppa in version string"
-                )
-            )
+        if version_contains_ppa:
+            return
+
+        msg = "upload to ppa does not include ~ppa in version string"
+        if sys.stdin.isatty():
+            if interface.boolean(
+                format_warning("WARNING"),
+                format_warning(f"{msg} - ignore?"),
+            ):
+                return
+
+        raise HookException(format_error(f"ERROR: {msg}"))
     else:
         if version_contains_ppa:
             raise HookException(
