@@ -4,6 +4,7 @@
 import distro_info
 import enum
 import os
+import tarfile
 
 from debian import (
     deb822,
@@ -11,6 +12,7 @@ from debian import (
     changelog,
 )
 from launchpadlib.launchpad import Launchpad
+from pathlib import Path
 from typing import Any
 
 
@@ -79,6 +81,7 @@ class Context:
         debian_changelog: str | changelog.Changelog | None = None,
         launchpad_handle: Launchpad | None = None,
         source_dir: str | None = None,
+        debian_tar: str | Path | None = None,
     ):
         self._source_dir: str | None = None
         if source_dir:
@@ -87,6 +90,15 @@ class Context:
             if debian_changelog is None:
                 debian_changelog = os.path.join(self.source_dir, "debian/changelog")
 
+        self._debian_tar: Path | None = None
+        if isinstance(debian_tar, str):
+            self._debian_tar = Path(debian_tar)
+        elif isinstance(debian_tar, Path):
+            self._debian_tar = debian_tar
+
+        if self._debian_tar and not self._debian_tar.is_file():
+            raise ValueError("invalid path for debian tar")
+
         self._changelog: changelog.Changelog | None = None
         if isinstance(debian_changelog, str):
             with open(debian_changelog, "r") as f:
@@ -94,6 +106,33 @@ class Context:
 
         elif isinstance(debian_changelog, changelog.Changelog):
             self._changelog = debian_changelog
+
+        elif self._debian_tar is not None:
+            with tarfile.open(self._debian_tar, "r:*") as tar:
+                try:
+                    changelog_from_tar = tar.extractfile("debian/changelog")
+                except KeyError:
+                    # In most cases, we could access debian/changelog directly,
+                    # i.e. when this is really a .debian.tar.xz. But for native
+                    # packages, we need <package_name>/debian/changelog, but
+                    # do not necessarily know the package name yet.
+                    dirs: list[Path] = []
+                    for member in tar.getmembers():
+                        p = Path(member.name)
+
+                        if not p.is_dir() or len(p.parts) != 1:
+                            continue
+
+                        dirs.append(p)
+
+                    if len(dirs) != 1:
+                        raise ValueError(f"invalid content in {self._debian_tar}")
+
+                    changelog_from_tar = tar.extractfile(
+                        str(dirs[0] / "debian/changelog")
+                    )
+
+                self._changelog = changelog.Changelog(changelog_from_tar)
 
         elif debian_changelog is not None:
             raise ValueError("invalid type for changelog")
@@ -174,6 +213,13 @@ class Context:
             raise ValueError(f"{source_dir} does not look like a debian source package")
 
         self._source_dir = source_dir
+
+    @property
+    def debian_tar(self) -> Path:
+        if self._debian_tar is None:
+            raise MissingContextException("missing context for debian tar")
+
+        return self._debian_tar
 
     def lint_fail(self, msg: str):
         raise LintException(msg)
