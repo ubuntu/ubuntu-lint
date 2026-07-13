@@ -9,6 +9,7 @@ from dput.changes import Changes
 from dput.core import logger
 from dput.exceptions import HookException
 from dput.interfaces.cli import CLInterface
+from pathlib import Path
 from typing import Callable
 from ubuntu_lint.cli import format_error, format_warning
 
@@ -20,7 +21,21 @@ def call_lint_as_hook(
     interface: CLInterface,
     can_ignore: bool = False,
 ):
-    context = ubuntu_lint.Context(changes=changes.get_raw_changes())
+    debian_tar: Path | None = None
+    for f in changes.get_files():
+        p = Path(f)
+
+        if re.match(
+            rf"^{changes.get('Source')}_{changes.get('Version')}(?:\.debian)?\.tar\.(?:xz|gz|bz2|lzma)$",
+            p.name,
+        ):
+            debian_tar = p
+            break
+
+    context = ubuntu_lint.Context(
+        changes=changes.get_raw_changes(),
+        debian_tar=debian_tar,
+    )
     try:
         lint(context)
     except ubuntu_lint.LintException as e:
