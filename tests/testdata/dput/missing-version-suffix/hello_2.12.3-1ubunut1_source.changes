@@ -1,0 +1,28 @@
+Format: 1.8
+Date: Tue, 14 Jul 2026 10:14:21 -0400
+Source: hello
+Built-For-Profiles: derivative.ubuntu noudeb
+Architecture: source
+Version: 2.12.3-1ubunut1
+Distribution: resolute
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: John Doe <john.doe@ubuntu.com>
+Launchpad-Bugs-Fixed: 1234567
+Changes:
+ hello (2.12.3-1ubunut1) resolute; urgency=medium
+ .
+   * Testing (LP: #1234567)
+Checksums-Sha1:
+ 21f14bed823972b22c39892dc9adac9079a7958c 1084 hello_2.12.3-1ubunut1.dsc
+ 39d0c265b8d037800e02f3690063f2ad8f1d954b 8856 hello_2.12.3-1ubunut1.debian.tar.xz
+ 01fd1ebbd65b04ae75a7c1e403829e95da2d8165 6582 hello_2.12.3-1ubunut1_source.buildinfo
+Checksums-Sha256:
+ f89b373a30b45f25c8d4637586caaeb105b1e0375c13d61b58d175e549064019 1084 hello_2.12.3-1ubunut1.dsc
+ 075899f9112295a2234a154d0825576bf6414d3ffce008b8f43d77bb40a150d4 8856 hello_2.12.3-1ubunut1.debian.tar.xz
+ 4afd73c5ffec25be061d4293bd8db6720e029690646a1c7afa239f1848d6567c 6582 hello_2.12.3-1ubunut1_source.buildinfo
+Files:
+ e127102c4926e016a05427bf3fcc8d84 1084 devel optional hello_2.12.3-1ubunut1.dsc
+ f5af8f5b6827b7a6b31366f34db9a739 8856 devel optional hello_2.12.3-1ubunut1.debian.tar.xz
+ 4e8b0813164fc6956bdfcd791478893f 6582 devel optional hello_2.12.3-1ubunut1_source.buildinfo
+Original-Maintainer: Joe Schmoe <joe.schmoe@debian.org>

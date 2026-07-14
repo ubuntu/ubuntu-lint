@@ -1,6 +1,7 @@
 # Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: GPL-3.0-only
 
+import glob
 import json
 import os
 import pytest
@@ -74,8 +75,15 @@ def get_cli_testcases() -> list[tuple[str, str, str]]:
     return testcases_with_data
 
 
-def get_dput_testcases() -> list[tuple[str, str]]:
-    return []
+def get_dput_testcases() -> list[str]:
+    testcases = os.listdir(get_dput_testdata_dir())
+
+    try:
+        testcases.remove("baseline")
+    except ValueError:
+        pass
+
+    return testcases
 
 
 @pytest.mark.parametrize("name", get_defined_cli_testcases())
@@ -141,9 +149,6 @@ def run_dput_hook_with_tmpdir(name: str, changes: str) -> subprocess.CompletedPr
         with open(dput_profile, "w") as f:
             f.write(f'{{"hooks": [ "{name}" ] }}')
 
-        changes_file = os.path.join(tmpdir, "test.changes")
-        shutil.copy2(changes, changes_file)
-
         # Prepare environment for dput-ng
         dput_env = os.environ.copy()
         dput_env["HOME"] = tmpdir
@@ -157,7 +162,7 @@ def run_dput_hook_with_tmpdir(name: str, changes: str) -> subprocess.CompletedPr
                 "--check-only",  # Perform pre-upload hooks only
                 "--unchecked",  # Do not check signature
                 "ubuntu",
-                changes_file,
+                changes,
             ],
             capture_output=True,
             env=dput_env,
@@ -165,13 +170,13 @@ def run_dput_hook_with_tmpdir(name: str, changes: str) -> subprocess.CompletedPr
 
 
 @pytest.mark.skipif(shutil.which("dput") is None, reason="dput-ng is not installed")
-@pytest.mark.parametrize(
-    "name", [name for name, _ in get_dput_testcases()]
-)
+@pytest.mark.parametrize("name", get_dput_testcases())
 def test_dput_hook(name: str):
     r = run_dput_hook_with_tmpdir(
         name,
-        os.path.join(get_dput_testdata_dir(), "baseline/changes"),
+        os.path.join(
+            get_dput_testdata_dir(), "baseline/hello_2.12.3-1ubuntu1_source.changes"
+        ),
     )
 
     out = r.stderr.decode()
@@ -182,9 +187,12 @@ def test_dput_hook(name: str):
 
 
 @pytest.mark.skipif(shutil.which("dput") is None, reason="dput-ng is not installed")
-@pytest.mark.parametrize("name, changes", get_dput_testcases())
-def test_dput_hook_expect_fail(name: str, changes: str):
-    r = run_dput_hook_with_tmpdir(name, changes)
+@pytest.mark.parametrize("name", get_dput_testcases())
+def test_dput_hook_expect_fail(name: str):
+    matches = glob.glob(f"{get_dput_testdata_dir()}/{name}/*.changes")
+    assert len(matches) == 1
+
+    r = run_dput_hook_with_tmpdir(name, matches[0])
 
     assert r.returncode != 0
 

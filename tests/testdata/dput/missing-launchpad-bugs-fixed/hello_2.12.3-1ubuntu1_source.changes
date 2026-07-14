@@ -1,0 +1,27 @@
+Format: 1.8
+Date: Tue, 14 Jul 2026 10:14:21 -0400
+Source: hello
+Built-For-Profiles: derivative.ubuntu noudeb
+Architecture: source
+Version: 2.12.3-1ubuntu1
+Distribution: stonking
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: John Doe <john.doe@ubuntu.com>
+Changes:
+ hello (2.12.3-1ubuntu1) stonking; urgency=medium
+ .
+   * Testing
+Checksums-Sha1:
+ 0fb80642c1d5651814505b4d07af377b8c4b2c3c 1325 hello_2.12.3-1ubuntu1.dsc
+ fd13a07e86d6fe8d72b0bba1a42cffdc1549d378 8852 hello_2.12.3-1ubuntu1.debian.tar.xz
+ eed5e4bcfbd43a82a6f4906375968ba039903609 6582 hello_2.12.3-1ubuntu1_source.buildinfo
+Checksums-Sha256:
+ 6346896ec512a82ba3422e05e2af47cf3b0c0f952252ce41a931f08351519623 1325 hello_2.12.3-1ubuntu1.dsc
+ 1262b43ef77978629d3211b95d97afcb7dd16a8c2d3bbf69d842a18a58e1458a 8852 hello_2.12.3-1ubuntu1.debian.tar.xz
+ 69f9ca70fd38c5a57e25fdcead8ef6621de198ecc7cfe6e7de98212a19d70091 6582 hello_2.12.3-1ubuntu1_source.buildinfo
+Files:
+ 7a71d392e55cb6c527e35c4c1016e338 1325 devel optional hello_2.12.3-1ubuntu1.dsc
+ 88f6e9be8ae8a7918db402ca52afc89b 8852 devel optional hello_2.12.3-1ubuntu1.debian.tar.xz
+ fa48491b13a08b4a8b81c2fd7d0a9e39 6582 devel optional hello_2.12.3-1ubuntu1_source.buildinfo
+Original-Maintainer: Joe Schmoe <joe.schmoe@debian.org>

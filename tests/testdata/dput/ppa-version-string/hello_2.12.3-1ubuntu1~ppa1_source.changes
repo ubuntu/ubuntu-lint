@@ -1,0 +1,31 @@
+Format: 1.8
+Date: Tue, 14 Jul 2026 10:14:21 -0400
+Source: hello
+Built-For-Profiles: derivative.ubuntu noudeb
+Architecture: source
+Version: 2.12.3-1ubuntu1~ppa1
+Distribution: resolute
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: John Doe <john.doe@ubuntu.com>
+Launchpad-Bugs-Fixed: 1234567
+Changes:
+ hello (2.12.3-1ubuntu1~ppa1) resolute; urgency=medium
+ .
+   * Testing (LP: #1234567)
+Checksums-Sha1:
+ cf29f674377d9a459ea7772ea0d2eb0cf715fdd5 1104 hello_2.12.3-1ubuntu1~ppa1.dsc
+ ee4030e966d16463e490444812f75b681eda71a4 1189208 hello_2.12.3.orig.tar.gz
+ fe3784d547ce960bef9d36bc35dfec58b4500367 8860 hello_2.12.3-1ubuntu1~ppa1.debian.tar.xz
+ a0703d3a5e9da5f2bc7eea4fdaf63732d11ffaec 6602 hello_2.12.3-1ubuntu1~ppa1_source.buildinfo
+Checksums-Sha256:
+ 854c9f44a5e32555072af8e26ab10c761ebd454f54c2f9b445c2c2baa75cfdd3 1104 hello_2.12.3-1ubuntu1~ppa1.dsc
+ 0d5f60154382fee10b114a1c34e785d8b1f492073ae2d3a6f7b147687b366aa0 1189208 hello_2.12.3.orig.tar.gz
+ 5c8ee819dd9fba1fdb6224c2cad35da7ca3c47b806d1e22d36539f3a2493d63f 8860 hello_2.12.3-1ubuntu1~ppa1.debian.tar.xz
+ f12b5e6cc23390693df0c6e82ede139f2d44a31f2ac3ed6f4686d0c1c24fff5f 6602 hello_2.12.3-1ubuntu1~ppa1_source.buildinfo
+Files:
+ 92736934e98fd588891f1f1c37b9858e 1104 devel optional hello_2.12.3-1ubuntu1~ppa1.dsc
+ abf08b16a616ed2902df4ab4846884be 1189208 devel optional hello_2.12.3.orig.tar.gz
+ b42ba5883d267947fa83af1afcf833bf 8860 devel optional hello_2.12.3-1ubuntu1~ppa1.debian.tar.xz
+ 9192c2580770cc8c81475dc5467dea24 6602 devel optional hello_2.12.3-1ubuntu1~ppa1_source.buildinfo
+Original-Maintainer: Joe Schmoe <joe.schmoe@debian.org>
