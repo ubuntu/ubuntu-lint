@@ -173,8 +173,11 @@ def test_dput_hook(name: str):
         os.path.join(get_testdata_dir(), "baseline/changes"),
     )
 
-    assert r.returncode == 0
-    assert f"running {name}:" in r.stderr.decode()
+    out = r.stderr.decode()
+    if r.returncode != 0:
+        pytest.fail(f"running {name} hook failed: {out}")
+
+    assert f"running {name}:" in out
 
 
 @pytest.mark.skipif(shutil.which("dput") is None, reason="dput-ng is not installed")
