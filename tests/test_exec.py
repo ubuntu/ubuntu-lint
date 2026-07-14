@@ -9,10 +9,17 @@ import subprocess
 import tempfile
 
 
-def get_testdata_dir() -> str:
+def get_cli_testdata_dir() -> str:
     return os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "testdata",
+        "testdata/cli",
+    )
+
+
+def get_dput_testdata_dir() -> str:
+    return os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "testdata/dput",
     )
 
 
@@ -37,8 +44,8 @@ def get_dput_dir() -> str:
     return os.path.join(get_top_level_dir(), "dput.d")
 
 
-def get_defined_testcases() -> list[str]:
-    testcases = os.listdir(get_testdata_dir())
+def get_defined_cli_testcases() -> list[str]:
+    testcases = os.listdir(get_cli_testdata_dir())
 
     try:
         testcases.remove("baseline")
@@ -48,11 +55,11 @@ def get_defined_testcases() -> list[str]:
     return testcases
 
 
-def get_defined_testcases_with_data() -> list[tuple[str, str, str]]:
+def get_cli_testcases() -> list[tuple[str, str, str]]:
     testcases_with_data: list[tuple[str, str, str]] = []
 
-    for name in get_defined_testcases():
-        testdir = os.path.join(get_testdata_dir(), name)
+    for name in get_defined_cli_testcases():
+        testdir = os.path.join(get_cli_testdata_dir(), name)
 
         changes = os.path.join(testdir, "changes")
         if not os.path.exists(changes):
@@ -67,20 +74,14 @@ def get_defined_testcases_with_data() -> list[tuple[str, str, str]]:
     return testcases_with_data
 
 
-def get_defined_testscase_with_changes() -> list[tuple[str, str]]:
-    testcases_with_changes = [
-        (name, changes)
-        for name, changes, _ in get_defined_testcases_with_data()
-        if changes
-    ]
-
-    return testcases_with_changes
+def get_dput_testcases() -> list[tuple[str, str]]:
+    return []
 
 
-@pytest.mark.parametrize("name", get_defined_testcases())
+@pytest.mark.parametrize("name", get_defined_cli_testcases())
 def test_exec_cli(name: str):
-    changes = os.path.join(get_testdata_dir(), "baseline/changes")
-    changelog = os.path.join(get_testdata_dir(), "baseline/changelog")
+    changes = os.path.join(get_cli_testdata_dir(), "baseline/changes")
+    changelog = os.path.join(get_cli_testdata_dir(), "baseline/changelog")
 
     cmd = [
         get_ubuntu_lint_bin(),
@@ -100,8 +101,8 @@ def test_exec_cli(name: str):
 
 @pytest.mark.parametrize(
     "name, changes, changelog",
-    get_defined_testcases_with_data(),
-    ids=get_defined_testcases(),
+    get_cli_testcases(),
+    ids=get_defined_cli_testcases(),
 )
 def test_exec_cli_expect_fail(name: str, changes: str, changelog: str):
     assert changes or changelog
@@ -165,12 +166,12 @@ def run_dput_hook_with_tmpdir(name: str, changes: str) -> subprocess.CompletedPr
 
 @pytest.mark.skipif(shutil.which("dput") is None, reason="dput-ng is not installed")
 @pytest.mark.parametrize(
-    "name", [name for name, _ in get_defined_testscase_with_changes()]
+    "name", [name for name, _ in get_dput_testcases()]
 )
 def test_dput_hook(name: str):
     r = run_dput_hook_with_tmpdir(
         name,
-        os.path.join(get_testdata_dir(), "baseline/changes"),
+        os.path.join(get_dput_testdata_dir(), "baseline/changes"),
     )
 
     out = r.stderr.decode()
@@ -181,7 +182,7 @@ def test_dput_hook(name: str):
 
 
 @pytest.mark.skipif(shutil.which("dput") is None, reason="dput-ng is not installed")
-@pytest.mark.parametrize("name, changes", get_defined_testscase_with_changes())
+@pytest.mark.parametrize("name, changes", get_dput_testcases())
 def test_dput_hook_expect_fail(name: str, changes: str):
     r = run_dput_hook_with_tmpdir(name, changes)
 
