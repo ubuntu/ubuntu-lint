@@ -88,8 +88,13 @@ def get_dput_testcases() -> list[str]:
 
 @pytest.mark.parametrize("name", get_defined_cli_testcases())
 def test_exec_cli(name: str):
-    changes = os.path.join(get_cli_testdata_dir(), "baseline/changes")
-    changelog = os.path.join(get_cli_testdata_dir(), "baseline/changelog")
+    changes = os.path.join(get_cli_testdata_dir(), f"baseline/{name}.changes")
+    if not os.path.exists(changes):
+        changes = os.path.join(get_cli_testdata_dir(), "baseline/changes")
+
+    changelog = os.path.join(get_cli_testdata_dir(), f"baseline/{name}.changelog")
+    if not os.path.exists(changelog):
+        changelog = os.path.join(get_cli_testdata_dir(), "baseline/changelog")
 
     cmd = [
         get_ubuntu_lint_bin(),

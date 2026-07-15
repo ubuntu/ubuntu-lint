@@ -1,0 +1,29 @@
+hello (2.12-1ubuntu1) resolute; urgency=medium
+
+  * Merge from Debian unstable (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+
+hello (2.12-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Joe Schmoe <joe.schmoe@debian.org>  Mon, 19 Jan 2026 15:13:02 -0500
+
+hello (2.11-2) unstable; urgency=medium
+
+  * Fix a bug
+
+ -- Joe Schmoe <joe.schmoe@debian.org>  Mon, 12 Jan 2026 15:13:02 -0500
+
+hello (2.11-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Joe Schmoe <joe.schmoe@debian.org>  Mon, 05 Jan 2026 15:13:02 -0500
+
+hello (2.10-2ubuntu2) resolute; urgency=medium
+
+  * Fix a bug (LP: #12345679)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
