@@ -172,6 +172,12 @@ all_linters = [
         default_level_devel=ubuntu_lint.LintResult.FAIL,
         default_level_stable=None,
     ),
+    LinterConfiguration(
+        name="extraneous-bad-files",
+        fn=ubuntu_lint.check_extraneous_bad_files,
+        default_level_devel=ubuntu_lint.LintResult.WARN,
+        default_level_stable=ubuntu_lint.LintResult.WARN,
+    ),
 ]
 all_linters_by_name = {linter.name: linter for linter in all_linters}
 

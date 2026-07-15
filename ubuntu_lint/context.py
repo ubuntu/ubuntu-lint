@@ -1,5 +1,6 @@
 # Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: GPL-3.0-only
+from pathlib import Path
 
 import distro_info
 import enum
@@ -76,6 +77,7 @@ class Context:
     def __init__(
         self,
         changes: str | deb822.Changes | None = None,
+        changes_path: str | Path | None = None,
         debian_changelog: str | changelog.Changelog | None = None,
         launchpad_handle: Launchpad | None = None,
         source_dir: str | None = None,
@@ -101,6 +103,10 @@ class Context:
         self._changes: deb822.Changes | None = None
         if changes is not None:
             self.changes = changes
+
+        self._changes_path: Path | None = None
+        if changes_path is not None:
+            self.changes_path = changes_path
 
         elif self._source_dir and self._changelog:
             # If we have a source dir and a changelog, but no changes were given,
@@ -141,6 +147,25 @@ class Context:
 
         else:
             raise ValueError("invalid type for changes file")
+
+    @property
+    def changes_path(self) -> Path:
+        if not self._changes_path:
+            raise MissingContextException("missing context for changes_path")
+        assert self._changes_path is not None
+
+        return self._changes_path
+
+    @changes_path.setter
+    def changes_path(self, changes_path: str | Path):
+        if isinstance(changes_path, str):
+            self._changes_path = Path(changes_path).absolute()
+
+        elif isinstance(changes_path, Path):
+            self._changes_path = changes_path
+
+        else:
+            raise ValueError("invalid type for changes_path")
 
     def changelog_entry_by_index(self, index: int) -> changelog.ChangeBlock:
         if not self._changelog:

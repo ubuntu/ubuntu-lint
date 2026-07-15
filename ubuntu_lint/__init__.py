@@ -21,6 +21,7 @@ from .linters import (
     check_release_mismatch,
     check_sru_version_string_breaks_upgrades,
     check_sru_version_string_convention,
+    check_extraneous_bad_files,
 )
 
 __all__ = [
@@ -41,4 +42,5 @@ __all__ = [
     "check_release_mismatch",
     "check_sru_version_string_breaks_upgrades",
     "check_sru_version_string_convention",
+    "check_extraneous_bad_files",
 ]
