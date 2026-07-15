@@ -98,6 +98,11 @@ name, e.g.\ \f[CR]1.2.3\-0ubuntu1\(ti22.04.1\f[R] and \f[CR]noble\f[R]
 .SS missing\-version\-suffix
 Detects when an upload for Ubuntu is missing an appropriate version
 string suffix, e.g.\ \(lqubuntuX\(rq or \(lqbuildX\(rq.
+.SS merge\-missing\-new\-debian\-changelog
+For package merge uploads, checks that the changes file includes the new
+Debian changelog entries.
+In other words, this check ensures that the source package was built
+with \f[CR]\-v<previous_ubuntu_version>\f[R].
 .PP
 See \f[CR]ubuntu\-lint \-\-help\f[R] for the complete list.
 .SH DPUT\-NG HOOKS
