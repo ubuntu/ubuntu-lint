@@ -1,5 +1,6 @@
 {
     "+hooks": [
+        "merge-missing-new-debian-changelog",
         "missing-git-ubuntu-references",
         "missing-launchpad-bugs-fixed",
         "missing-pending-changelog-entry",
