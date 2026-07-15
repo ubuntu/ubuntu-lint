@@ -217,3 +217,18 @@ def dput_missing_version_suffix(
         interface,
         stable_can_ignore=True,
     )
+
+
+def dput_merge_missing_new_debian_changelog(
+    changes: Changes, profile: dict, interface: CLInterface
+):
+    """
+    Hook wrapper around ubuntu_lint.check_merge_missing_new_debian_changelog.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_merge_missing_new_debian_changelog,
+        changes,
+        profile,
+        interface,
+        can_ignore=True,
+    )

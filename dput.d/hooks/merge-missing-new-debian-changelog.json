@@ -1,0 +1,5 @@
+{
+    "description": "check if Ubuntu merge changes are missing new Debian changelog",
+    "path": "ubuntu_lint.dput.dput_merge_missing_new_debian_changelog",
+    "pre": true
+}
