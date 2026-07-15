@@ -96,6 +96,9 @@ Attempts to detect inconsistencies in the version string and series name, e.g. `
 ## missing-version-suffix
 Detects when an upload for Ubuntu is missing an appropriate version string suffix, e.g. "ubuntuX" or "buildX".
 
+## merge-missing-new-debian-changelog
+For package merge uploads, checks that the changes file includes the new Debian changelog entries. In other words, this check ensures that the source package was built with `-v<previous_ubuntu_version>`.
+
 See `ubuntu-lint --help` for the complete list.
 
 # DPUT-NG HOOKS
