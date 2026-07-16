@@ -1,0 +1,5 @@
+{
+    "description": "check if the version string follows SRU convention",
+    "path": "ubuntu_lint.dput.dput_sru_version_string_convention",
+    "pre": true
+}
