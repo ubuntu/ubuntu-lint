@@ -6,6 +6,7 @@ import re
 import requests
 
 from debian import changelog, debian_support
+from functools import lru_cache
 from ubuntu_lint import Context, MissingContextException
 
 
@@ -263,6 +264,7 @@ def check_release_mismatch(context: Context):
             )
 
 
+@lru_cache(maxsize=128)
 def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
     """
     Construct a map of series -> highest version (excluding -backports). This can then
