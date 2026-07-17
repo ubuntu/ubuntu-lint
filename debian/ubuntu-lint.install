@@ -1,2 +1,3 @@
 ubuntu-lint usr/bin
-dput.d/* etc/dput.d/
+dput.d/hooks etc/dput.d/
+dput.d/profiles etc/dput.d/
