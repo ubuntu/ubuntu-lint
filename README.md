@@ -27,4 +27,5 @@ The [`ubuntu_lint`](ubuntu_lint) Python module implements each lint, which is a 
 
 ## `dput-ng` hooks
 
-Lints that operate on a changes file can trivially be used as a dput-ng hook. The [`ubuntu_lint.dput`](ubuntu_lint/dput.py) module provides simple wrappers that conform to `dput-ng`'s excpectations, and the necessary JSON snippets are in [`dput.d`](dput.d).
+Lints that operate on a changes file can trivially be used as a dput-ng hook. The [`ubuntu_lint.dput`](ubuntu_lint/dput.py) module provides simple wrappers that conform to `dput-ng`'s excpectations, and the necessary JSON snippets are in [`dput.d`](dput.d).  
+If you want to set that up from this `git` repository, just symlink `~/.dput.d` to the `dput.d` folder: `ln -s $(realpath dput.d) ~/.dput.d`.
