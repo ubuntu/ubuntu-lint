@@ -13,6 +13,7 @@ Build-Depends:
  python3-launchpadlib,
  python3-poetry,
  python3-pytest,
+ python3-pytest-mock,
  python3-requests,
  python3-requests-mock,
 Standards-Version: 4.7.2
