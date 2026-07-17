@@ -20,6 +20,7 @@ def call_lint_as_hook(
     profile: dict,
     interface: CLInterface,
     can_ignore: bool = False,
+    stable_can_ignore: bool = False,
 ):
     debian_tar: Path | None = None
     for f in changes.get_files():
@@ -45,7 +46,9 @@ def call_lint_as_hook(
             logger.debug(f"skipping {lint.__name__}: {msg}")
             return
 
-        if can_ignore and sys.stdin.isatty():
+        if (
+            can_ignore or (stable_can_ignore and context.is_stable_release())
+        ) and sys.stdin.isatty():
             if interface.boolean(
                 format_warning("WARNING"),
                 format_warning(f"{msg} - ignore?"),
@@ -109,6 +112,7 @@ def dput_missing_ubuntu_maintainer(
         changes,
         profile,
         interface,
+        stable_can_ignore=True,
     )
 
 
@@ -211,4 +215,5 @@ def dput_missing_version_suffix(
         changes,
         profile,
         interface,
+        stable_can_ignore=True,
     )
