@@ -495,6 +495,11 @@ def check_merge_missing_new_debian_changelog(context: Context):
             # targeting Ubuntu.
             context.lint_skip("upload does not look like a merge")
 
+    if index == 1:
+        # There are no Debian uploads between the the previous
+        # and current version.
+        context.lint_skip("upload does not look like a merge")
+
     if "ubuntu" not in str(old_version):
         context.lint_skip("upload does not look like a merge")
 
