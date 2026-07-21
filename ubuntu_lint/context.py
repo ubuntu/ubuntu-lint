@@ -116,23 +116,32 @@ class Context:
                     # i.e. when this is really a .debian.tar.xz. But for native
                     # packages, we need <package_name>/debian/changelog, but
                     # do not necessarily know the package name yet.
-                    dirs: list[Path] = []
+                    dirs: list[str] = []
                     for member in tar.getmembers():
                         if not member.isdir():
                             continue
 
-                        p = Path(member.name)
-                        if len(p.parts) != 1:
+                        if len(Path(member.name).parts) != 1:
                             continue
 
-                        dirs.append(p)
+                        dirs.append(member.name)
 
                     if len(dirs) != 1:
                         raise ValueError(f"invalid content in {self._debian_tar}")
 
-                    changelog_from_tar = tar.extractfile(
-                        str(dirs[0] / "debian/changelog")
-                    )
+                    try:
+                        member = tar.getmember(f"{dirs[0]}/debian")
+                        if member.issym():
+                            # This is rare, but snapd does this.
+                            changelog_from_tar = tar.extractfile(
+                                f"{dirs[0]}/{member.linkname}/changelog"
+                            )
+                        else:
+                            changelog_from_tar = tar.extractfile(
+                                f"{member.name}/changelog"
+                            )
+                    except KeyError:
+                        raise ValueError(f"invalid content in {self._debian_tar}")
 
                 self._changelog = changelog.Changelog(changelog_from_tar)
 
