@@ -1,3 +1,11 @@
+ubuntu-lint (0.2.1ubuntu) stonking; urgency=medium
+
+  * dput: escape package name and version when looking for tarball
+  * context: handle debian dir as a symlink in tarball
+  * linters: fix logic for deciding if an upload is a merge
+
+ -- Nick Rosbrook <enr0n@ubuntu.com>  Tue, 21 Jul 2026 16:54:44 -0400
+
 ubuntu-lint (0.2.0ubuntu) stonking; urgency=medium
 
   [ Nick Rosbrook ]
