@@ -22,16 +22,22 @@ def call_lint_as_hook(
     can_ignore: bool = False,
     stable_can_ignore: bool = False,
 ):
+    source_and_version = re.escape(f"{changes.get('Source')}_{changes.get('Version')}")
     debian_tar: Path | None = None
     for f in changes.get_files():
         p = Path(f)
 
         if re.match(
-            rf"^{changes.get('Source')}_{changes.get('Version')}(?:\.debian)?\.tar\.(?:xz|gz|bz2|lzma)$",
+            rf"^{source_and_version}(?:\.debian)?\.tar\.(?:xz|gz|bz2|lzma)$",
             p.name,
         ):
             debian_tar = p
             break
+
+    if debian_tar is None:
+        raise HookException(
+            format_error("ERROR: could not find source package tarball")
+        )
 
     context = ubuntu_lint.Context(
         changes=changes.get_raw_changes(),
