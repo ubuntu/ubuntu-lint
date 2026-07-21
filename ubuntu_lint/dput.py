@@ -112,7 +112,7 @@ def dput_missing_ubuntu_maintainer(
         changes,
         profile,
         interface,
-        stable_can_ignore=True,
+        can_ignore=True,
     )
 
 
