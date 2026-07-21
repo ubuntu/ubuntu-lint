@@ -118,9 +118,11 @@ class Context:
                     # do not necessarily know the package name yet.
                     dirs: list[Path] = []
                     for member in tar.getmembers():
-                        p = Path(member.name)
+                        if not member.isdir():
+                            continue
 
-                        if not p.is_dir() or len(p.parts) != 1:
+                        p = Path(member.name)
+                        if len(p.parts) != 1:
                             continue
 
                         dirs.append(p)
