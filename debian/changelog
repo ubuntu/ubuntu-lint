@@ -1,3 +1,39 @@
+ubuntu-lint (0.2.0ubuntu) stonking; urgency=medium
+
+  [ Nick Rosbrook ]
+  * context: add debian_tar context support
+  * d/control: have ubuntu-lint Recommends: dput-ng
+  * d/t/pytest: specify tests directory for pytest
+  * doc: document merge-missing-new-debian-changelog
+  * doc: document missing-version-suffix
+  * dput: add hook for merge-missing-new-debian-changelog
+  * dput: add hook for missing-version-suffix
+  * dput: add hook for sru-version-string-convention
+  * dput: allow ignoring dput_ppa_version_string if target is a PPA
+  * dput: always allow ignoring missing-ubuntu-maintainer (LP: #2161067)
+  * dput: pass debian tar to context
+  * linters: add check_missing_version_suffix
+  * linters: cache rmadison responses
+  * linters: do not consider deleted uploads as "pending"
+  * linters: fix rmadison check to consider universe packages
+  * linters: introduce check_merge_missing_new_debian_changelog
+  * tests: add cli tests for merge-missing-new-debian-changelog
+  * tests: add test for check_sru_bug_missing_release_tasks
+  * tests: add test for check_sru_bug_missing_template
+  * tests: add unit tests for check_missing_pending_changelog_entry
+  * tests: re-work dput hook integration tests
+  * tests: show dput output when it fails
+  * tests: split cli and dput testdata
+
+  [ Florent 'Skia' Jacquet ]
+  * dput: add 'stable_can_ignore' (#20)
+  * dput: add a 'scripts' symlink
+  * README: document how to use dput hooks from the git repo
+  * debian: exclude 'dput.d/scripts' from installation
+  * debian: build depend on 'python3-pytest-mock'
+
+ -- Nick Rosbrook <enr0n@ubuntu.com>  Tue, 21 Jul 2026 11:01:19 -0400
+
 ubuntu-lint (0.1.0ubuntu) stonking; urgency=medium
 
   * Initial release (LP: #2158014).
