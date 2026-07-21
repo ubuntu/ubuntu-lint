@@ -8,5 +8,5 @@ cp -r tests/ "$AUTOPKGTEST_TMP"
 cd "$AUTOPKGTEST_TMP"
 
 for py in $(py3versions --supported); do
-    $py -m pytest -v
+    $py -m pytest -v tests/
 done
