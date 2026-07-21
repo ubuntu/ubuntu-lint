@@ -48,4 +48,4 @@ jobs:
     - name: poetry install
       run: poetry install
     - name: pytest
-      run: poetry run pytest --verbose
+      run: poetry run pytest --verbose tests/
