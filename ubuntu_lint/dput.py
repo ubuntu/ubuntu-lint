@@ -232,3 +232,18 @@ def dput_merge_missing_new_debian_changelog(
         interface,
         can_ignore=True,
     )
+
+
+def dput_sru_version_string_convention(
+    changes: Changes, profile: dict, interface: CLInterface
+):
+    """
+    Hook wrapper around ubuntu_lint.check_sru_version_string_convention.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_sru_version_string_convention,
+        changes,
+        profile,
+        interface,
+        can_ignore=True,
+    )
