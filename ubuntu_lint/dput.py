@@ -22,13 +22,19 @@ def call_lint_as_hook(
     can_ignore: bool = False,
     stable_can_ignore: bool = False,
 ):
-    source_and_version = re.escape(f"{changes.get('Source')}_{changes.get('Version')}")
+
+    raw_changes = changes.get_raw_changes()
+    source = raw_changes.get_as_string("Source")
+
+    # The epoch is stripped from the build artifact filenames, if present.
+    version_no_epoch = raw_changes.get_as_string("Version").split(":")[-1]
+
     debian_tar: Path | None = None
     for f in changes.get_files():
         p = Path(f)
 
         if re.match(
-            rf"^{source_and_version}(?:\.debian)?\.tar\.(?:xz|gz|bz2|lzma)$",
+            rf"^{source}_{re.escape(version_no_epoch)}(?:\.debian)?\.tar\.(?:xz|gz|bz2|lzma)$",
             p.name,
         ):
             debian_tar = p
@@ -40,7 +46,7 @@ def call_lint_as_hook(
         )
 
     context = ubuntu_lint.Context(
-        changes=changes.get_raw_changes(),
+        changes=raw_changes,
         debian_tar=debian_tar,
     )
     try:
