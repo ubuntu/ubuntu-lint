@@ -20,6 +20,8 @@ When other arguments are passed, `ubuntu-lint` will infer context using the curr
 
 For each lint, `foo-bar`, there is a corresponding flag `--foo-bar=` to control how that lint will run. It accepts one of `auto, off, warn, fail`. If set to `off`, it will not run at all. If set to `warn` or `fail`, the check will run, and detected issues will be treated as a warning or failure, respectively. The default is `auto`.
 
+![CLI Demo](./doc/ubuntu-lint.gif)
+
 ## Python module
 
 The [`ubuntu_lint`](ubuntu_lint) Python module implements each lint, which is a function that accepts a single `Context` object. To indicate an issue, the lint raises a `LintException` by calling `Context.lint_fail`, `Context.lint_error`, `Context.lint_warn`, or `Context.lint_skip` with a message describing the issue. The `LintException` object has a `result` attribute with a `LintResult` to indicate the result of the lint.
@@ -29,3 +31,5 @@ The [`ubuntu_lint`](ubuntu_lint) Python module implements each lint, which is a 
 
 Lints that operate on a changes file can trivially be used as a dput-ng hook. The [`ubuntu_lint.dput`](ubuntu_lint/dput.py) module provides simple wrappers that conform to `dput-ng`'s excpectations, and the necessary JSON snippets are in [`dput.d`](dput.d).  
 If you want to set that up from this `git` repository, just symlink `~/.dput.d` to the `dput.d` folder: `ln -s $(realpath dput.d) ~/.dput.d`.
+
+![dput Demo](./doc/dput.gif)
