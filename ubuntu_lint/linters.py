@@ -400,9 +400,21 @@ def check_sru_version_string_convention(context: Context):
         suffix_extra = f".{series_version}"
 
     expect: str = ""
+    valid_expects: set[str] = set()
     if not ubuntu_revision:
         # E.g. 2.0-1 -> 2.0-1ubuntu0.1
         expect = f"{upstream_version}{debian_revison}ubuntu0{suffix_extra}.1"
+        valid_expects.add(f"{upstream_version}{debian_revison}~{series_version}.1")
+    elif ubuntu_revision.startswith("~"):
+        # E.g. 2.0-1~24.04.1 -> 2.0-1~24.04.2
+        try:
+            parts = ubuntu_revision.split(".")
+            parts[-1] = str(int(parts[-1]) + 1)
+            new_ubuntu_revision = ".".join(parts)
+
+            expect = f"{upstream_version}{debian_revison}{new_ubuntu_revision}"
+        except ValueError:
+            context.lint_error(f"cannot handle version string format {prev_version}")
     elif "ubuntu" not in ubuntu_revision:
         # E.g. 2.0-1build1 -> 2.0-1ubuntu0.1
         expect = f"{upstream_version}{debian_revison}ubuntu0{suffix_extra}.1"
@@ -423,7 +435,9 @@ def check_sru_version_string_convention(context: Context):
         except ValueError:
             context.lint_error(f"cannot handle version string format {prev_version}")
 
-    if str(next_version) != expect:
+    valid_expects.add(expect)
+
+    if str(next_version) not in valid_expects:
         context.lint_fail(
             f"{next_version} does not match expected version {expect}, "
             f"see {docs} for expected version string conventions"

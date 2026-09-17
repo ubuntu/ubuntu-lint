@@ -494,6 +494,7 @@ hello ({prev_version}) noble; urgency=high
         [
             # 2.10-3 -> "2.10-3ubuntu0.1"
             ("2.10-3", "2.10-3ubuntu0.1", True),
+            ("2.10-3", "2.10-3~24.04.1", True),
             ("2.10-3", "2.10-3ubuntu1", False),
             ("2.10-3", "2.10-4", False),
             # 2.10-3ubuntu0.1 -> "2.10-3ubuntu0.2"
@@ -592,6 +593,47 @@ hello ({prev_version}) noble; urgency=high
             with pytest.raises(
                 ubuntu_lint.LintException,
                 match="version string for new upstream should contain suffix",
+            ):
+                ubuntu_lint.check_sru_version_string_convention(context)
+
+    changelog_tmpl = """python3-defaults ({next_version}) jammy; urgency=medium
+
+  * Fix a bug (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Wed, 11 Mar 2026 16:01:41 -0400
+
+python3-defaults ({prev_version}) jammy; urgency=high
+
+  * No change rebuild for 64-bit time_t and frame pointers.
+
+ -- John Doe <john.doe@example.com>  Mon, 08 Apr 2024 17:58:52 +0200
+"""
+    requests_mock.get(
+        "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=python3-defaults&a=source&text=on",
+        text=textwrap.dedent("""\
+            python3-defaults | 3.10.6-1~22.04.1 | jammy-updates | source
+            python3-defaults | 3.10.6-1         | noble         | source
+            python3-defaults | 3.10.6-1         | oracular      | source
+        """),
+    )
+    for next_version, expect_pass in [
+        ("3.10.6-1~22.04.2", True),
+        ("3.10.6-1ubuntu0.1", False),
+    ]:
+        debian_changelog = changelog.Changelog(
+            changelog_tmpl.format(
+                prev_version="3.10.6-1~22.04.1",
+                next_version=next_version,
+            )
+        )
+        context = ubuntu_lint.Context(debian_changelog=debian_changelog)
+
+        if expect_pass:
+            ubuntu_lint.check_sru_version_string_convention(context)
+        else:
+            with pytest.raises(
+                ubuntu_lint.LintException,
+                match=f"{next_version} does not match expected version",
             ):
                 ubuntu_lint.check_sru_version_string_convention(context)
 
