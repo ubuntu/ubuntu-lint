@@ -374,7 +374,9 @@ def check_sru_version_string_convention(context: Context):
             f"please check {docs} to ensure version string is correct"
         )
 
-    match = re.search(r"[0-9]+", prev_version.debian_version)
+    # Match the whole numeric Debian revision, including any dots (e.g. NMU-style
+    # "4.1"), so it isn't mistaken for a trailing Ubuntu revision.
+    match = re.match(r"[0-9]+(?:\.[0-9]+)*", prev_version.debian_version)
     if match:
         upstream_version, debian_revison, ubuntu_revision = str(
             prev_version

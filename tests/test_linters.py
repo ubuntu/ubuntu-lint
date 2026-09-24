@@ -524,6 +524,11 @@ hello ({prev_version}) noble; urgency=high
             # 2.10-3ubuntu0.24.04.1 -> 2.10-3ubuntu0.24.04.2
             ("2.10-3ubuntu0.24.04.1", "2.10-3ubuntu0.24.04.2", True),
             ("2.10-3ubuntu0.24.04.1", "2.10-3ubuntu1", False),
+            # NMU-style dotted Debian revision: 2.10-3.1 -> 2.10-3.1ubuntu0.1
+            ("2.10-3.1", "2.10-3.1ubuntu0.1", True),
+            ("2.10-3.1", "2.10-3.1ubuntu1", False),
+            # 2.10-3.1ubuntu0.1 -> 2.10-3.1ubuntu0.2
+            ("2.10-3.1ubuntu0.1", "2.10-3.1ubuntu0.2", True),
         ],
         [
             # 2.10-5 in two releases -> 2.10-5ubuntu0.24.04.1
