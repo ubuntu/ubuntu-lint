@@ -192,6 +192,28 @@ def test_dput_hook(name: str):
 
 
 @pytest.mark.skipif(shutil.which("dput") is None, reason="dput-ng is not installed")
+def test_dput_hook_source_format_1_0():
+    """
+    debian/source/format 1.0 packages ship a .diff.gz instead of a debian
+    tarball, so make sure the hooks can find the changelog there too.
+    """
+    name = "merge-missing-new-debian-changelog"
+
+    r = run_dput_hook_with_tmpdir(
+        name,
+        os.path.join(
+            get_dput_testdata_dir(), "baseline/hello_2.12.3-2ubuntu1_source.changes"
+        ),
+    )
+
+    out = r.stderr.decode()
+    if r.returncode != 0:
+        pytest.fail(f"running {name} hook failed: {out}")
+
+    assert f"running {name}:" in out
+
+
+@pytest.mark.skipif(shutil.which("dput") is None, reason="dput-ng is not installed")
 @pytest.mark.parametrize("name", get_dput_testcases())
 def test_dput_hook_expect_fail(name: str):
     matches = glob.glob(f"{get_dput_testdata_dir()}/{name}/*.changes")

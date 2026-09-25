@@ -3,6 +3,7 @@
 
 import distro_info
 import enum
+import gzip
 import os
 import tarfile
 
@@ -108,42 +109,12 @@ class Context:
             self._changelog = debian_changelog
 
         elif self._debian_tar is not None:
-            with tarfile.open(self._debian_tar, "r:*") as tar:
-                try:
-                    changelog_from_tar = tar.extractfile("debian/changelog")
-                except KeyError:
-                    # In most cases, we could access debian/changelog directly,
-                    # i.e. when this is really a .debian.tar.xz. But for native
-                    # packages, we need <package_name>/debian/changelog, but
-                    # do not necessarily know the package name yet.
-                    dirs: list[str] = []
-                    for member in tar.getmembers():
-                        if not member.isdir():
-                            continue
-
-                        if len(Path(member.name).parts) != 1:
-                            continue
-
-                        dirs.append(member.name)
-
-                    if len(dirs) != 1:
-                        raise ValueError(f"invalid content in {self._debian_tar}")
-
-                    try:
-                        member = tar.getmember(f"{dirs[0]}/debian")
-                        if member.issym():
-                            # This is rare, but snapd does this.
-                            changelog_from_tar = tar.extractfile(
-                                f"{dirs[0]}/{member.linkname}/changelog"
-                            )
-                        else:
-                            changelog_from_tar = tar.extractfile(
-                                f"{member.name}/changelog"
-                            )
-                    except KeyError:
-                        raise ValueError(f"invalid content in {self._debian_tar}")
-
-                self._changelog = changelog.Changelog(changelog_from_tar)
+            if self._debian_tar.name.endswith(".diff.gz"):
+                # debian/source/format 1.0 packages ship the packaging as a
+                # gzipped diff against the upstream source, not as a tarball.
+                self._changelog = self._get_changelog_from_diff()
+            else:
+                self._changelog = self._get_changelog_from_tar()
 
         elif debian_changelog is not None:
             raise ValueError("invalid type for changelog")
@@ -243,6 +214,100 @@ class Context:
 
     def lint_error(self, msg: str):
         raise LintException(msg, result=LintResult.ERROR)
+
+    def _get_changelog_from_tar(self) -> changelog.Changelog:
+        """
+        Return the changelog from the debian tarball of a source package.
+        """
+        assert self._debian_tar is not None
+
+        with tarfile.open(self._debian_tar, "r:*") as tar:
+            try:
+                changelog_from_tar = tar.extractfile("debian/changelog")
+            except KeyError:
+                # In most cases, we could access debian/changelog directly,
+                # i.e. when this is really a .debian.tar.xz. But for native
+                # packages, we need <package_name>/debian/changelog, but
+                # do not necessarily know the package name yet.
+                dirs: list[str] = []
+                for member in tar.getmembers():
+                    if not member.isdir():
+                        continue
+
+                    if len(Path(member.name).parts) != 1:
+                        continue
+
+                    dirs.append(member.name)
+
+                if len(dirs) != 1:
+                    raise ValueError(f"invalid content in {self._debian_tar}")
+
+                try:
+                    member = tar.getmember(f"{dirs[0]}/debian")
+                    if member.issym():
+                        # This is rare, but snapd does this.
+                        changelog_from_tar = tar.extractfile(
+                            f"{dirs[0]}/{member.linkname}/changelog"
+                        )
+                    else:
+                        changelog_from_tar = tar.extractfile(f"{member.name}/changelog")
+                except KeyError:
+                    raise ValueError(f"invalid content in {self._debian_tar}")
+
+            return changelog.Changelog(changelog_from_tar)
+
+    def _get_changelog_from_diff(self) -> changelog.Changelog:
+        """
+        Return the changelog from the gzipped diff of a debian/source/format
+        1.0 source package. Such a diff may only create files, so we expect
+        debian/changelog to be wholly new.
+        """
+        assert self._debian_tar is not None
+
+        changelog_from_diff: list[str] | None = None
+        with gzip.open(self._debian_tar, "rt", errors="replace") as diff:
+            for line in diff:
+                if changelog_from_diff is None:
+                    if not line.startswith("+++ "):
+                        continue
+
+                    # The paths are usually prefixed with the source directory,
+                    # e.g. "+++ hello-2.12.3/debian/changelog", and may be
+                    # followed by a tab separated timestamp.
+                    path = line.removeprefix("+++ ").split("\t")[0].rstrip()
+                    if path != "debian/changelog" and not path.endswith(
+                        "/debian/changelog"
+                    ):
+                        continue
+
+                    changelog_from_diff = []
+                    continue
+
+                if line.startswith("--- "):
+                    # The start of the diff for the next file.
+                    break
+
+                if line.startswith("@@"):
+                    # The hunk header is not part of the changelog.
+                    continue
+
+                if line.startswith("+"):
+                    changelog_from_diff.append(line[1:])
+                    continue
+
+                if line.startswith((" ", "-")):
+                    raise ValueError(
+                        f"invalid content in {self._debian_tar}: debian/changelog "
+                        "is not a wholly new file"
+                    )
+
+                # Anything else is not part of the hunk, e.g. trailing garbage.
+                break
+
+        if not changelog_from_diff:
+            raise ValueError(f"invalid content in {self._debian_tar}")
+
+        return changelog.Changelog("".join(changelog_from_diff))
 
     def _ensure_get[T](
         self,

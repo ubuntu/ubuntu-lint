@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import copy
+import gzip
+import io
 import pytest
 import ubuntu_lint
 import re
+import tarfile
 import textwrap
 
 from debian import deb822, changelog
@@ -1095,3 +1098,132 @@ def test_check_merge_missing_new_debian_changelog_with_pending(
             launchpad_handle=mock_lp_handle,
         )
     )
+
+
+#
+# The tests below cover how Context finds debian/changelog in the source
+# package artifact of an upload, i.e. the debian tarball of a 3.0 package,
+# or the gzipped diff of a debian/source/format 1.0 package.
+#
+
+changelog_from_artifact = textwrap.dedent("""\
+    hello (2.12.3-1ubuntu1) resolute; urgency=medium
+
+      * Testing (LP: #1234567)
+
+     -- John Doe <john.doe@ubuntu.com>  Tue, 14 Jul 2026 10:14:21 -0400
+    """)
+
+# A second file in the diff, so that we notice if the changelog section is
+# not terminated where it should be.
+control_in_diff = textwrap.dedent("""\
+    --- hello-2.12.3.orig/debian/control
+    +++ hello-2.12.3/debian/control
+    @@ -0,0 +1,2 @@
+    +Source: hello
+    +Section: devel
+    """)
+
+
+def write_diff_gz(path, diff: str):
+    with gzip.open(path, "wt") as f:
+        f.write(diff)
+
+    return path
+
+
+def write_debian_tar(path, members: dict[str, str | None]):
+    with tarfile.open(path, "w:xz") as tar:
+        for name, content in members.items():
+            if content is None:
+                info = tarfile.TarInfo(name=name)
+                info.type = tarfile.DIRTYPE
+                tar.addfile(info)
+                continue
+
+            data = content.encode()
+            info = tarfile.TarInfo(name=name)
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+    return path
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "debian/changelog",
+        "hello-2.12.3/debian/changelog",
+    ],
+)
+def test_context_changelog_from_diff(tmp_path, path: str):
+    lines = changelog_from_artifact.splitlines()
+    diff = f"--- hello-2.12.3.orig/debian/changelog\n+++ {path}\n"
+    diff += f"@@ -0,0 +1,{len(lines)} @@\n"
+    diff += "".join(f"+{line}\n" for line in lines)
+
+    context = ubuntu_lint.Context(
+        debian_tar=write_diff_gz(
+            tmp_path / "hello_2.12.3-1ubuntu1.diff.gz", diff + control_in_diff
+        )
+    )
+
+    assert context.get_source_package_name() == "hello"
+    assert str(context.get_package_version()) == "2.12.3-1ubuntu1"
+    assert context.get_launchpad_bugs_fixed() == ["1234567"]
+
+
+def test_context_changelog_from_diff_without_changelog(tmp_path):
+    diff_gz = write_diff_gz(tmp_path / "hello_2.12.3-1ubuntu1.diff.gz", control_in_diff)
+
+    with pytest.raises(ValueError, match="invalid content"):
+        ubuntu_lint.Context(debian_tar=diff_gz)
+
+
+def test_context_changelog_from_diff_not_new_file(tmp_path):
+    # A changelog that is modified rather than created cannot be
+    # reconstructed from the diff alone.
+    lines = changelog_from_artifact.splitlines()
+    diff = "--- hello-2.12.3.orig/debian/changelog\n"
+    diff += "+++ hello-2.12.3/debian/changelog\n"
+    diff += f"@@ -1,1 +1,{len(lines)} @@\n"
+    diff += "".join(f"+{line}\n" for line in lines[:-1])
+    diff += f"-{lines[-1]}\n"
+
+    diff_gz = write_diff_gz(tmp_path / "hello_2.12.3-1ubuntu1.diff.gz", diff)
+
+    with pytest.raises(ValueError, match="is not a wholly new file"):
+        ubuntu_lint.Context(debian_tar=diff_gz)
+
+
+@pytest.mark.parametrize(
+    "members",
+    [
+        {"debian/changelog": changelog_from_artifact},
+        {
+            "hello-2.12.3": None,
+            "hello-2.12.3/debian": None,
+            "hello-2.12.3/debian/changelog": changelog_from_artifact,
+        },
+    ],
+    ids=["debian-tar", "native-tar"],
+)
+def test_context_changelog_from_tar(tmp_path, members: dict[str, str | None]):
+    context = ubuntu_lint.Context(
+        debian_tar=write_debian_tar(
+            tmp_path / "hello_2.12.3-1ubuntu1.debian.tar.xz", members
+        )
+    )
+
+    assert context.get_source_package_name() == "hello"
+    assert str(context.get_package_version()) == "2.12.3-1ubuntu1"
+
+
+def test_context_changelog_from_tar_without_changelog(tmp_path):
+    debian_tar = write_debian_tar(
+        tmp_path / "hello_2.12.3-1ubuntu1.debian.tar.xz",
+        {"debian": None, "debian/control": "Source: hello\n"},
+    )
+
+    with pytest.raises(ValueError, match="invalid content"):
+        ubuntu_lint.Context(debian_tar=debian_tar)
