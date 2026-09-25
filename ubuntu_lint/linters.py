@@ -319,6 +319,36 @@ def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
     return max_version_by_series
 
 
+@lru_cache(maxsize=128)
+def _lp_get_max_unapproved_version(context: Context, series: str) -> str:
+    """
+    Return the highest version of the package waiting in the Unapproved queue for
+    series, or an empty string if there is none. rmadison only knows about versions
+    that are published, so uploads still awaiting review are invisible to it.
+    """
+    package = context.get_source_package_name()
+
+    lp_ubuntu = context.lp.distributions["ubuntu"]
+    lp_series = lp_ubuntu.getSeries(name_or_version=series)
+    uploads = lp_series.getPackageUploads(
+        archive=lp_ubuntu.main_archive, status="Unapproved"
+    )
+
+    max_version = ""
+    for upload in uploads:
+        # getPackageUploads() cannot filter by source package, and a PackageUpload
+        # does not expose the source package name, so filter on display_name.
+        if upload.display_name != package:
+            continue
+
+        if not max_version or (
+            debian_support.version_compare(upload.display_version, max_version) > 0
+        ):
+            max_version = upload.display_version
+
+    return max_version
+
+
 def check_sru_version_string_breaks_upgrades(context: Context):
     """
     Examines the package version string, and the package version string in all
@@ -349,6 +379,13 @@ def check_sru_version_string_breaks_upgrades(context: Context):
 
     for s in compare_series[index + 1 :]:
         v = max_version_by_series[s]
+
+        # rmadison only reports published versions, so also consider an upload that
+        # is still waiting in the Unapproved queue for the newer series.
+        unapproved = _lp_get_max_unapproved_version(context, s)
+        if unapproved and debian_support.version_compare(unapproved, v) > 0:
+            v = unapproved
+
         if debian_support.version_compare(target_version, v) > 0:
             context.lint_fail(
                 f"{target_version} for {target_series} is greater than {v} for {s}, "

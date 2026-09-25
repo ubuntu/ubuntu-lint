@@ -403,7 +403,9 @@ hello (2.10-5ubuntu1) uffda; urgency=medium
         )
 
 
-def test_check_sru_version_string_breaks_upgrades(requests_mock):
+def test_check_sru_version_string_breaks_upgrades(
+    requests_mock, mock_lp_handle, add_package_upload_mock
+):
     package = basic_changes_sru.get("Source")
 
     rmadison_tmpls = [
@@ -437,13 +439,18 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
         """),
     ]
 
+    # Unless stated otherwise, nothing is waiting in the Unapproved queue.
+    mock_lp_handle.getSeries.return_value.getPackageUploads.return_value = []
+
     for tmpl in rmadison_tmpls:
         requests_mock.get(
             f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on",
             text=tmpl,
         )
         ubuntu_lint.check_sru_version_string_breaks_upgrades(
-            ubuntu_lint.Context(changes=basic_changes_sru)
+            ubuntu_lint.Context(
+                changes=basic_changes_sru, launchpad_handle=mock_lp_handle
+            )
         )
 
         # Simulate a version bump in noble that is greater than questing.
@@ -451,8 +458,39 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
         changes_bad_version["Version"] = "2.10-5ubuntu0.1"
         with pytest.raises(ubuntu_lint.LintException):
             ubuntu_lint.check_sru_version_string_breaks_upgrades(
-                ubuntu_lint.Context(changes=changes_bad_version)
+                ubuntu_lint.Context(
+                    changes=changes_bad_version, launchpad_handle=mock_lp_handle
+                )
             )
+
+    requests_mock.get(
+        f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on",
+        text=rmadison_tmpls[0],
+    )
+    changes_bad_version = copy.deepcopy(basic_changes_sru)
+    changes_bad_version["Version"] = "2.10-5ubuntu0.1"
+
+    # The same upload is fine if a newer version is already uploaded to a newer
+    # series, but is still waiting in the Unapproved queue.
+    mock_lp_handle.getSeries.return_value.getPackageUploads.return_value = [
+        add_package_upload_mock(package, "2.10-6"),
+    ]
+    ubuntu_lint.check_sru_version_string_breaks_upgrades(
+        ubuntu_lint.Context(
+            changes=changes_bad_version, launchpad_handle=mock_lp_handle
+        )
+    )
+
+    # Uploads of other packages in the queue are ignored.
+    mock_lp_handle.getSeries.return_value.getPackageUploads.return_value = [
+        add_package_upload_mock("not-hello", "2.10-6"),
+    ]
+    with pytest.raises(ubuntu_lint.LintException):
+        ubuntu_lint.check_sru_version_string_breaks_upgrades(
+            ubuntu_lint.Context(
+                changes=changes_bad_version, launchpad_handle=mock_lp_handle
+            )
+        )
 
 
 def test_check_sru_version_string_convention(requests_mock):
@@ -801,6 +839,17 @@ def add_published_source_mock(mocker):
         return mock_published
 
     return _add_published_source_mock
+
+
+@pytest.fixture
+def add_package_upload_mock(mocker):
+    def _add_package_upload_mock(name, version):
+        mock_upload = mocker.MagicMock()
+        mock_upload.display_name = name
+        mock_upload.display_version = version
+        return mock_upload
+
+    return _add_package_upload_mock
 
 
 def test_check_missing_pending_changelog_entry(
