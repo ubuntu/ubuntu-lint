@@ -1095,3 +1095,207 @@ def test_check_merge_missing_new_debian_changelog_with_pending(
             launchpad_handle=mock_lp_handle,
         )
     )
+
+
+def with_orig_tarball(changes: deb822.Changes, name: str) -> deb822.Changes:
+    changes = copy.deepcopy(changes)
+    changes["Files"].append(
+        {
+            "md5sum": "abf08b16a616ed2902df4ab4846884be",
+            "size": "1189208",
+            "section": "devel",
+            "priority": "optional",
+            "name": name,
+        }
+    )
+
+    return changes
+
+
+def test_check_missing_orig_tarball(mock_lp_handle, add_published_source_mock):
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.10-2ubuntu2"),
+    ]
+
+    # The merge brings in a new upstream version, but the changes file
+    # does not include the orig tarball.
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=re.escape(
+            "hello_2.12.orig.tar.* is not in the upload or the Ubuntu archive, "
+            "source package should be built with -sa"
+        ),
+    ) as e:
+        ubuntu_lint.check_missing_orig_tarball(
+            ubuntu_lint.Context(
+                changes=basic_changes_merge,
+                debian_changelog=basic_changelog_merge,
+                launchpad_handle=mock_lp_handle,
+            )
+        )
+
+    assert e.value.result == ubuntu_lint.LintResult.FAIL
+
+    # Once the orig tarball is included, it should pass.
+    changes_with_orig = with_orig_tarball(basic_changes_merge, "hello_2.12.orig.tar.gz")
+    ubuntu_lint.check_missing_orig_tarball(
+        ubuntu_lint.Context(
+            changes=changes_with_orig,
+            debian_changelog=basic_changelog_merge,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+
+def test_check_missing_orig_tarball_in_archive(
+    mock_lp_handle, add_published_source_mock
+):
+    # E.g., the new Debian version was synced before this upload.
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.12-1"),
+        add_published_source_mock("2.10-2ubuntu2"),
+    ]
+    ubuntu_lint.check_missing_orig_tarball(
+        ubuntu_lint.Context(
+            changes=basic_changes_merge,
+            debian_changelog=basic_changelog_merge,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+
+def test_check_missing_orig_tarball_epoch(mock_lp_handle, add_published_source_mock):
+    debian_changelog = changelog.Changelog(
+        """hello (1:2.12-1ubuntu1) resolute; urgency=medium
+
+  * Merge from Debian unstable (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+
+hello (1:2.12-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Joe Schmoe <joe.schmoe@debian.org>  Mon, 19 Jan 2026 15:13:02 -0500
+
+hello (1:2.10-2ubuntu2) resolute; urgency=medium
+
+  * Fix a bug (LP: #12345679)
+
+ -- John Doe <john.doe@example.com>  Fri, 02 Jan 2026 15:13:02 -0500
+"""
+    )
+    changes = copy.deepcopy(basic_changes_merge)
+    changes["Version"] = "1:2.12-1ubuntu1"
+
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("1:2.10-2ubuntu2"),
+    ]
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=re.escape("hello_2.12.orig.tar.* is not in the upload"),
+    ):
+        ubuntu_lint.check_missing_orig_tarball(
+            ubuntu_lint.Context(
+                changes=changes,
+                debian_changelog=debian_changelog,
+                launchpad_handle=mock_lp_handle,
+            )
+        )
+
+    # The epoch is not part of the orig tarball filename.
+    changes_with_orig = with_orig_tarball(changes, "hello_2.12.orig.tar.xz")
+    ubuntu_lint.check_missing_orig_tarball(
+        ubuntu_lint.Context(
+            changes=changes_with_orig,
+            debian_changelog=debian_changelog,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+    # Nor is it considered when looking for the upstream version in the archive.
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("1:2.12-1"),
+    ]
+    ubuntu_lint.check_missing_orig_tarball(
+        ubuntu_lint.Context(
+            changes=changes,
+            debian_changelog=debian_changelog,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+
+def test_check_missing_orig_tarball_same_upstream(mock_lp_handle):
+    # The previous Ubuntu upload has the same upstream version, so there is
+    # no need to check Launchpad.
+    ubuntu_lint.check_missing_orig_tarball(
+        ubuntu_lint.Context(
+            changes=basic_changes_ubuntu_extra_changelog,
+            debian_changelog=basic_changelog_ubuntu_extra_changelog,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+    mock_lp_handle.main_archive.getPublishedSources.assert_not_called()
+
+
+def test_check_missing_orig_tarball_no_previous_ubuntu_upload(
+    mock_lp_handle, add_published_source_mock
+):
+    # There is no previous Ubuntu upload in the changelog, so Launchpad
+    # decides whether the orig tarball is needed.
+    mock_lp_handle.main_archive.getPublishedSources.return_value = [
+        add_published_source_mock("2.10-5"),
+    ]
+    ubuntu_lint.check_missing_orig_tarball(
+        ubuntu_lint.Context(
+            changes=basic_changes_ubuntu_delta,
+            debian_changelog=basic_changelog_ubuntu_delta,
+            launchpad_handle=mock_lp_handle,
+        )
+    )
+
+    mock_lp_handle.main_archive.getPublishedSources.return_value = []
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=re.escape("hello_2.10.orig.tar.* is not in the upload"),
+    ):
+        ubuntu_lint.check_missing_orig_tarball(
+            ubuntu_lint.Context(
+                changes=basic_changes_ubuntu_delta,
+                debian_changelog=basic_changelog_ubuntu_delta,
+                launchpad_handle=mock_lp_handle,
+            )
+        )
+
+
+def test_check_missing_orig_tarball_skip():
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match="upload is not targeting an Ubuntu series",
+    ) as e:
+        ubuntu_lint.check_missing_orig_tarball(
+            ubuntu_lint.Context(
+                changes=basic_changes_no_ubuntu_delta,
+                debian_changelog=basic_changelog_no_ubuntu_delta,
+            )
+        )
+
+    assert e.value.result == ubuntu_lint.LintResult.SKIP
+
+    native_changelog = changelog.Changelog("""hello (1.0) resolute; urgency=medium
+
+  * Fix a bug (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Wed, 11 Mar 2026 16:01:41 -0400
+ """)
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match="native packages do not have an orig tarball",
+    ) as e:
+        ubuntu_lint.check_missing_orig_tarball(
+            ubuntu_lint.Context(debian_changelog=native_changelog)
+        )
+
+    assert e.value.result == ubuntu_lint.LintResult.SKIP
