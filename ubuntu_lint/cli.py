@@ -179,6 +179,13 @@ all_linters = [
         default_level_stable=None,
         requires={"changelog", "changes"},
     ),
+    LinterConfiguration(
+        name="missing-orig-tarball",
+        fn=ubuntu_lint.check_missing_orig_tarball,
+        default_level_devel=ubuntu_lint.LintResult.FAIL,
+        default_level_stable=ubuntu_lint.LintResult.FAIL,
+        requires={"changelog", "changes"},
+    ),
 ]
 all_linters_by_name = {linter.name: linter for linter in all_linters}
 
