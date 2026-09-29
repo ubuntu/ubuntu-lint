@@ -563,3 +563,63 @@ def check_merge_missing_new_debian_changelog(context: Context):
 
     elif changes_versions != expect:
         context.lint_fail(msg)
+
+
+def check_missing_orig_tarball(context: Context):
+    """
+    Checks that if an upload has a new upstream version, it includes the orig
+    tarball, unless the orig tarball is already in the Ubuntu archive.
+    """
+    di = distro_info.UbuntuDistroInfo()
+    if not di.valid(context.get_series()):
+        context.lint_skip("upload is not targeting an Ubuntu series")
+
+    version = context.get_package_version()
+    if not version.debian_version:
+        context.lint_skip("native packages do not have an orig tarball")
+
+    package = context.get_source_package_name()
+    upstream_version = version.upstream_version
+    assert upstream_version is not None
+
+    for f in context.changes.get("Files", []):
+        if re.match(
+            rf"^{re.escape(package)}_{re.escape(upstream_version)}\.orig\.tar\.",
+            f["name"],
+        ):
+            return
+
+    # By default, dpkg-genchanges only includes the orig tarball if the upstream
+    # version differs from that of the previous changelog entry. For a merge,
+    # that is the Debian entry, so compare against the previous Ubuntu upload
+    # instead.
+    index = 1
+    while True:
+        try:
+            entry = context.changelog_entry_by_index(index)
+        except IndexError:
+            break
+
+        if di.valid(str(entry.distributions).partition("-")[0]):
+            if entry.version.upstream_version == upstream_version:
+                return
+            break
+
+        index += 1
+
+    # The upstream version is new since the last Ubuntu upload, but the orig
+    # tarball may still be in the archive, e.g. from a sync or an upload to
+    # another series.
+    lp_ubuntu = context.lp.distributions["ubuntu"]
+    published = lp_ubuntu.main_archive.getPublishedSources(
+        source_name=package, exact_match=True
+    )
+    for p in published:
+        v = debian_support.Version(p.source_package_version)
+        if v.upstream_version == upstream_version:
+            return
+
+    context.lint_fail(
+        f"{package}_{upstream_version}.orig.tar.* is not in the upload or the "
+        "Ubuntu archive, source package should be built with -sa"
+    )
