@@ -1,0 +1,5 @@
+{
+    "description": "check if changes for a new upstream version are missing the orig tarball",
+    "path": "ubuntu_lint.dput.dput_missing_orig_tarball",
+    "pre": true
+}
