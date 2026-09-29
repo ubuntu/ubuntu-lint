@@ -99,6 +99,9 @@ Detects when an upload for Ubuntu is missing an appropriate version string suffi
 ## merge-missing-new-debian-changelog
 For package merge uploads, checks that the changes file includes the new Debian changelog entries. In other words, this check ensures that the source package was built with `-v<previous_ubuntu_version>`.
 
+## missing-orig-tarball
+For uploads of a new upstream version, checks that the changes file includes the orig tarball, unless it is already in the Ubuntu archive. In other words, this check catches a source package that should have been built with `-sa`, e.g. after a merge.
+
 See `ubuntu-lint --help` for the complete list.
 
 # DPUT-NG HOOKS
