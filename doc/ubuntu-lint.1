@@ -103,6 +103,11 @@ For package merge uploads, checks that the changes file includes the new
 Debian changelog entries.
 In other words, this check ensures that the source package was built
 with \f[CR]\-v<previous_ubuntu_version>\f[R].
+.SS missing\-orig\-tarball
+For uploads of a new upstream version, checks that the changes file
+includes the orig tarball, unless it is already in the Ubuntu archive.
+In other words, this check catches a source package that should have
+been built with \f[CR]\-sa\f[R], e.g.\ after a merge.
 .PP
 See \f[CR]ubuntu\-lint \-\-help\f[R] for the complete list.
 .SH DPUT\-NG HOOKS
