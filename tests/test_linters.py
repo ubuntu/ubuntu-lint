@@ -3,6 +3,7 @@
 
 import copy
 import pytest
+import requests
 import ubuntu_lint
 import re
 import textwrap
@@ -342,6 +343,17 @@ def test_check_git_ubuntu_references_mismatch(requests_mock):
     requests_mock.get(
         f"{vcs_git}/patch/?h={vcs_git_ref}",
         status_code=404,
+    )
+    with pytest.raises(ubuntu_lint.LintException):
+        ubuntu_lint.check_git_ubuntu_references_mismatch(
+            ubuntu_lint.Context(changes=basic_changes_ubuntu_delta)
+        )
+
+    # Simulate a connection timeout/drop, which should raise a lint error
+    # rather than hang indefinitely.
+    requests_mock.get(
+        f"{vcs_git}/patch/?h={vcs_git_ref}",
+        exc=requests.exceptions.ConnectTimeout,
     )
     with pytest.raises(ubuntu_lint.LintException):
         ubuntu_lint.check_git_ubuntu_references_mismatch(
