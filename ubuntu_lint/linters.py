@@ -88,7 +88,11 @@ def check_git_ubuntu_references_mismatch(context: Context):
         context.lint_skip("changes file does not have Vcs-Git-Ref")
 
     url = f"{vcs_git}/patch/?h={vcs_git_ref}"
-    r = requests.get(url)
+    try:
+        r = requests.get(url, timeout=30)
+    except requests.exceptions.RequestException as e:
+        context.lint_error(f"failed to check {url} ({e})")
+
     if not r.ok:
         if r.status_code == 404:
             context.lint_error(f"{url} does not exist")
