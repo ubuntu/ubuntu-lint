@@ -415,7 +415,9 @@ hello (2.10-5ubuntu1) uffda; urgency=medium
         )
 
 
-def test_check_sru_version_string_breaks_upgrades(requests_mock):
+def test_check_sru_version_string_breaks_upgrades(
+    requests_mock, mock_lp_handle, add_package_upload_mock
+):
     package = basic_changes_sru.get("Source")
 
     rmadison_tmpls = [
@@ -449,13 +451,18 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
         """),
     ]
 
+    # Unless stated otherwise, nothing is waiting in the Unapproved queue.
+    mock_lp_handle.getSeries.return_value.getPackageUploads.return_value = []
+
     for tmpl in rmadison_tmpls:
         requests_mock.get(
             f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on",
             text=tmpl,
         )
         ubuntu_lint.check_sru_version_string_breaks_upgrades(
-            ubuntu_lint.Context(changes=basic_changes_sru)
+            ubuntu_lint.Context(
+                changes=basic_changes_sru, launchpad_handle=mock_lp_handle
+            )
         )
 
         # Simulate a version bump in noble that is greater than questing.
@@ -463,8 +470,39 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
         changes_bad_version["Version"] = "2.10-5ubuntu0.1"
         with pytest.raises(ubuntu_lint.LintException):
             ubuntu_lint.check_sru_version_string_breaks_upgrades(
-                ubuntu_lint.Context(changes=changes_bad_version)
+                ubuntu_lint.Context(
+                    changes=changes_bad_version, launchpad_handle=mock_lp_handle
+                )
             )
+
+    requests_mock.get(
+        f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on",
+        text=rmadison_tmpls[0],
+    )
+    changes_bad_version = copy.deepcopy(basic_changes_sru)
+    changes_bad_version["Version"] = "2.10-5ubuntu0.1"
+
+    # The same upload is fine if a newer version is already uploaded to a newer
+    # series, but is still waiting in the Unapproved queue.
+    mock_lp_handle.getSeries.return_value.getPackageUploads.return_value = [
+        add_package_upload_mock(package, "2.10-6"),
+    ]
+    ubuntu_lint.check_sru_version_string_breaks_upgrades(
+        ubuntu_lint.Context(
+            changes=changes_bad_version, launchpad_handle=mock_lp_handle
+        )
+    )
+
+    # Uploads of other packages in the queue are ignored.
+    mock_lp_handle.getSeries.return_value.getPackageUploads.return_value = [
+        add_package_upload_mock("not-hello", "2.10-6"),
+    ]
+    with pytest.raises(ubuntu_lint.LintException):
+        ubuntu_lint.check_sru_version_string_breaks_upgrades(
+            ubuntu_lint.Context(
+                changes=changes_bad_version, launchpad_handle=mock_lp_handle
+            )
+        )
 
 
 def test_check_sru_version_string_convention(requests_mock):
@@ -536,11 +574,19 @@ hello ({prev_version}) noble; urgency=high
             # 2.10-3ubuntu0.24.04.1 -> 2.10-3ubuntu0.24.04.2
             ("2.10-3ubuntu0.24.04.1", "2.10-3ubuntu0.24.04.2", True),
             ("2.10-3ubuntu0.24.04.1", "2.10-3ubuntu1", False),
-            # NMU-style dotted Debian revision: 2.10-3.1 -> 2.10-3.1ubuntu0.1
-            ("2.10-3.1", "2.10-3.1ubuntu0.1", True),
-            ("2.10-3.1", "2.10-3.1ubuntu1", False),
-            # 2.10-3.1ubuntu0.1 -> 2.10-3.1ubuntu0.2
-            ("2.10-3.1ubuntu0.1", "2.10-3.1ubuntu0.2", True),
+            # Native packages, i.e. no Debian revision.
+            # 2.0 -> 2.0ubuntu0.1
+            ("2.0", "2.0ubuntu0.1", True),
+            ("2.0", "2.0ubuntu1", False),
+            # A bare "ubuntu" marks a package native to Ubuntu,
+            # 2.0ubuntu -> 2.0ubuntu0.1
+            ("2.0ubuntu", "2.0ubuntu0.1", True),
+            # 2.0ubuntu1 -> 2.0ubuntu1.1
+            ("2.0ubuntu1", "2.0ubuntu1.1", True),
+            ("2.0ubuntu1", "2.0ubuntu2", False),
+            # 2.0ubuntu1.1 -> 2.0ubuntu1.2
+            ("2.0ubuntu1.1", "2.0ubuntu1.2", True),
+            ("2.0ubuntu1.1", "2.0ubuntu1.1", False),
         ],
         [
             # 2.10-5 in two releases -> 2.10-5ubuntu0.24.04.1
@@ -561,6 +607,13 @@ hello ({prev_version}) noble; urgency=high
             ("2.10-5ubuntu1.1", "2.10-5ubuntu1.1.24.04.1", True),
             ("2.10-5ubuntu1.1", "2.10-5ubuntu1.2", False),
             ("2.10-5ubuntu1.1", "2.10-5ubuntu2", False),
+            # Native packages, i.e. no Debian revision.
+            # 2.0 in two releases -> 2.0ubuntu0.24.04.1
+            ("2.0", "2.0ubuntu0.24.04.1", True),
+            ("2.0", "2.0ubuntu0.1", False),
+            # 2.0ubuntu1 in two releases -> 2.0ubuntu1.24.04.1
+            ("2.0ubuntu1", "2.0ubuntu1.24.04.1", True),
+            ("2.0ubuntu1", "2.0ubuntu1.1", False),
         ],
     ]
 
@@ -623,6 +676,27 @@ hello ({prev_version}) noble; urgency=high
                 match="version string for new upstream should contain suffix",
             ):
                 ubuntu_lint.check_sru_version_string_convention(context)
+
+    # A native package with a malformed Ubuntu revision.
+    requests_mock.get(
+        "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=hello&a=source&text=on",
+        text=rmadison_tmpls[0].format(prev_version="2.0ubuntu1.x"),
+    )
+    debian_changelog = changelog.Changelog(
+        changelog_tmpl.format(
+            prev_version="2.0ubuntu1.x",
+            next_version="2.0ubuntu1.y",
+        )
+    )
+    context = ubuntu_lint.Context(debian_changelog=debian_changelog)
+
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match=re.escape("cannot handle version string format 2.0ubuntu1.x"),
+    ) as e:
+        ubuntu_lint.check_sru_version_string_convention(context)
+
+    assert e.value.result == ubuntu_lint.LintResult.ERROR
 
     changelog_tmpl = """python3-defaults ({next_version}) jammy; urgency=medium
 
@@ -813,6 +887,17 @@ def add_published_source_mock(mocker):
         return mock_published
 
     return _add_published_source_mock
+
+
+@pytest.fixture
+def add_package_upload_mock(mocker):
+    def _add_package_upload_mock(name, version):
+        mock_upload = mocker.MagicMock()
+        mock_upload.display_name = name
+        mock_upload.display_version = version
+        return mock_upload
+
+    return _add_package_upload_mock
 
 
 def test_check_missing_pending_changelog_entry(
