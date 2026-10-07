@@ -7,6 +7,8 @@ import requests
 
 from debian import changelog, debian_support
 from functools import lru_cache
+from httplib2 import HttpLib2Error
+from lazr.restfulclient.errors import HTTPError
 from ubuntu_lint import Context, MissingContextException
 
 
@@ -283,48 +285,21 @@ def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
     be used to compare the target version against all newer releases, to ensure it
     sorts before them.
 
-    The data is fetched anonymously from the Launchpad web service, which is
-    the same backend used by rmadison for Ubuntu.
+    The data is fetched from the Launchpad web service using the context's
+    launchpadlib handle.
     """
     package = context.get_source_package_name()
 
-    url: str | None = "https://api.launchpad.net/devel/ubuntu/+archive/primary"
-    params: dict[str, str] | None = {
-        "ws.op": "getPublishedSources",
-        "source_name": package,
-        "exact_match": "true",
-        "status": "Published",
-        "ws.size": "300",
-    }
-
     max_version_by_series: dict[str, str] = {}
-    while url:
-        try:
-            r = requests.get(url, params=params, timeout=30)
-        except requests.exceptions.RequestException as e:
-            context.lint_error(f"failed to query Launchpad for {package} ({e})")
+    try:
+        published = context.lp.distributions["ubuntu"].main_archive.getPublishedSources(
+            source_name=package, exact_match=True, status="Published"
+        )
 
-        if not r.ok:
-            context.lint_error(
-                f"failed to query Launchpad for {package} (status_code={r.status_code})"
-            )
-
-        try:
-            data = r.json()
-            entries = data["entries"]
-            next_url = data.get("next_collection_link")
-        except (ValueError, KeyError, TypeError, AttributeError):
-            context.lint_error(f"unexpected response from Launchpad for {package}")
-
-        for entry in entries:
-            try:
-                version = entry["source_package_version"]
-                series = entry["distro_series_link"].rstrip("/").rpartition("/")[2]
-                pocket = entry["pocket"]
-            except (KeyError, TypeError, AttributeError):
-                context.lint_error(
-                    f"unexpected publication from Launchpad for {package}: {entry}"
-                )
+        for entry in published:
+            version = entry.source_package_version
+            series = entry.distro_series_link.rstrip("/").rpartition("/")[2]
+            pocket = entry.pocket
 
             if pocket == "Backports":
                 # Exclude -backports, as different rules apply.
@@ -341,9 +316,8 @@ def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
             except KeyError:
                 max_version_by_series[series] = version
 
-        # The next_collection_link already contains the query parameters.
-        url = next_url
-        params = None
+    except (HTTPError, HttpLib2Error, OSError) as e:
+        context.lint_error(f"failed to query Launchpad for {package} ({e})")
 
     return max_version_by_series
 
