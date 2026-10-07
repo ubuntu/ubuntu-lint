@@ -281,6 +281,45 @@ hello (2.10-2ubuntu1) resolute; urgency=medium
 """)
 
 
+def lp_published_sources_url(package: str) -> str:
+    return (
+        "https://api.launchpad.net/devel/ubuntu/+archive/primary"
+        f"?ws.op=getPublishedSources&source_name={package}"
+        "&exact_match=true&status=Published"
+    )
+
+
+def lp_published_sources(rmadison: str, next_collection_link: str | None = None):
+    """
+    Build a Launchpad getPublishedSources JSON response from rmadison-style
+    lines, i.e. "<source_package> | <version> | <suite>[/<component>] | source".
+    """
+    entries = []
+    for line in rmadison.splitlines():
+        values = [c.strip() for c in line.split("|")]
+        if len(values) < 4:
+            continue
+
+        suite, _, component = values[2].partition("/")
+        series, _, pocket = suite.partition("-")
+        entries.append(
+            {
+                "source_package_name": values[0],
+                "source_package_version": values[1],
+                "distro_series_link": f"https://api.launchpad.net/devel/ubuntu/{series}",
+                "pocket": pocket.capitalize() if pocket else "Release",
+                "component_name": component or "main",
+                "status": "Published",
+            }
+        )
+
+    response: dict = {"start": 0, "total_size": len(entries), "entries": entries}
+    if next_collection_link:
+        response["next_collection_link"] = next_collection_link
+
+    return response
+
+
 def test_check_missing_ubuntu_maintainer():
     ubuntu_lint.check_missing_ubuntu_maintainer(
         ubuntu_lint.Context(changes=basic_changes_no_ubuntu_delta)
@@ -451,8 +490,8 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
 
     for tmpl in rmadison_tmpls:
         requests_mock.get(
-            f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on",
-            text=tmpl,
+            lp_published_sources_url(str(package)),
+            json=lp_published_sources(tmpl),
         )
         ubuntu_lint.check_sru_version_string_breaks_upgrades(
             ubuntu_lint.Context(changes=basic_changes_sru)
@@ -465,6 +504,77 @@ def test_check_sru_version_string_breaks_upgrades(requests_mock):
             ubuntu_lint.check_sru_version_string_breaks_upgrades(
                 ubuntu_lint.Context(changes=changes_bad_version)
             )
+
+
+def test_rmadison_get_max_version_by_series(requests_mock):
+    from ubuntu_lint.linters import _rmadison_get_max_version_by_series
+
+    next_link = (
+        "https://api.launchpad.net/devel/ubuntu/+archive/primary"
+        "?ws.op=getPublishedSources&source_name=hello&exact_match=true"
+        "&status=Published&ws.start=3"
+    )
+    # Register the first page before the second one, since requests_mock
+    # gives precedence to the most recently registered matching URL.
+    requests_mock.get(
+        lp_published_sources_url("hello"),
+        json=lp_published_sources(
+            textwrap.dedent("""\
+                hello | 2.10-2ubuntu4 | jammy          | source
+                hello | 2.10-3build1  | noble          | source
+                hello | 2.10-3build2  | noble-proposed | source
+            """),
+            next_collection_link=next_link,
+        ),
+    )
+    requests_mock.get(
+        next_link,
+        json=lp_published_sources(textwrap.dedent("""\
+            hello | 2.10-3ubuntu0.1 | noble-updates   | source
+            hello | 2.10-5          | questing        | source
+            hello | 2.10-6~24.04.1  | noble-backports | source
+        """)),
+    )
+
+    assert _rmadison_get_max_version_by_series(
+        ubuntu_lint.Context(changes=basic_changes_sru)
+    ) == {
+        "jammy": "2.10-2ubuntu4",
+        "noble": "2.10-3ubuntu0.1",
+        "questing": "2.10-5",
+    }
+    assert requests_mock.call_count == 2
+    assert all(req.timeout for req in requests_mock.request_history)
+
+    # HTTP error
+    requests_mock.get(lp_published_sources_url("hello"), status_code=503)
+    with pytest.raises(ubuntu_lint.LintException, match="status_code=503") as e:
+        _rmadison_get_max_version_by_series(
+            ubuntu_lint.Context(changes=basic_changes_sru)
+        )
+    assert e.value.result == ubuntu_lint.LintResult.ERROR
+
+    # Network error
+    requests_mock.get(
+        lp_published_sources_url("hello"), exc=requests.exceptions.ConnectTimeout
+    )
+    with pytest.raises(
+        ubuntu_lint.LintException, match="failed to query Launchpad"
+    ) as e:
+        _rmadison_get_max_version_by_series(
+            ubuntu_lint.Context(changes=basic_changes_sru)
+        )
+    assert e.value.result == ubuntu_lint.LintResult.ERROR
+
+    # Malformed response
+    requests_mock.get(lp_published_sources_url("hello"), text="not json")
+    with pytest.raises(
+        ubuntu_lint.LintException, match="unexpected response from Launchpad"
+    ) as e:
+        _rmadison_get_max_version_by_series(
+            ubuntu_lint.Context(changes=basic_changes_sru)
+        )
+    assert e.value.result == ubuntu_lint.LintResult.ERROR
 
 
 def test_check_sru_version_string_convention(requests_mock):
@@ -570,8 +680,10 @@ hello ({prev_version}) noble; urgency=high
 
         for prev_version, next_version, expect_pass in testcases:
             requests_mock.get(
-                "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=hello&a=source&text=on",
-                text=rmadison_tmpl.format(prev_version=prev_version),
+                lp_published_sources_url("hello"),
+                json=lp_published_sources(
+                    rmadison_tmpl.format(prev_version=prev_version)
+                ),
             )
             debian_changelog = changelog.Changelog(
                 changelog_tmpl.format(
@@ -604,8 +716,10 @@ hello ({prev_version}) noble; urgency=high
 
     for prev_version, next_version, expect_pass in testcases:
         requests_mock.get(
-            "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=hello&a=source&text=on",
-            text=rmadison_tmpls[0].format(prev_version=prev_version),
+            lp_published_sources_url("hello"),
+            json=lp_published_sources(
+                rmadison_tmpls[0].format(prev_version=prev_version)
+            ),
         )
         debian_changelog = changelog.Changelog(
             changelog_tmpl.format(
@@ -637,12 +751,12 @@ python3-defaults ({prev_version}) jammy; urgency=high
  -- John Doe <john.doe@example.com>  Mon, 08 Apr 2024 17:58:52 +0200
 """
     requests_mock.get(
-        "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=python3-defaults&a=source&text=on",
-        text=textwrap.dedent("""\
+        lp_published_sources_url("python3-defaults"),
+        json=lp_published_sources(textwrap.dedent("""\
             python3-defaults | 3.10.6-1~22.04.1 | jammy-updates | source
             python3-defaults | 3.10.6-1         | noble         | source
             python3-defaults | 3.10.6-1         | oracular      | source
-        """),
+        """)),
     )
     for next_version, expect_pass in [
         ("3.10.6-1~22.04.2", True),
