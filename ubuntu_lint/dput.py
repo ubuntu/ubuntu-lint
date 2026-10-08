@@ -34,7 +34,8 @@ def call_lint_as_hook(
         p = Path(f)
 
         if re.match(
-            rf"^{source}_{re.escape(version_no_epoch)}(?:\.debian)?\.tar\.(?:xz|gz|bz2|lzma)$",
+            rf"^{source}_{re.escape(version_no_epoch)}"
+            rf"(?:(?:\.debian)?\.tar\.(?:xz|gz|bz2|lzma)|\.diff\.gz)$",
             p.name,
         ):
             debian_tar = p
