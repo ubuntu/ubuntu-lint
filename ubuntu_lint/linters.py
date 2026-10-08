@@ -7,6 +7,8 @@ import requests
 
 from debian import changelog, debian_support
 from functools import lru_cache
+from httplib2 import HttpLib2Error
+from lazr.restfulclient.errors import HTTPError
 from ubuntu_lint import Context, MissingContextException
 
 
@@ -282,43 +284,40 @@ def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
     Construct a map of series -> highest version (excluding -backports). This can then
     be used to compare the target version against all newer releases, to ensure it
     sorts before them.
+
+    The data is fetched from the Launchpad web service using the context's
+    launchpadlib handle.
     """
     package = context.get_source_package_name()
 
-    url = f"https://people.canonical.com/~ubuntu-archive/madison.cgi?package={package}&a=source&text=on"
-
-    r = requests.get(url)
-    if not r.ok:
-        if r.status_code == 404:
-            context.lint_error(f"{url} does not exist")
-        else:
-            context.lint_error(f"failed to check {url} (status_code={r.status_code})")
-
     max_version_by_series: dict[str, str] = {}
-    for line in r.text.splitlines():
-        # An rmadison line is formatted like:
-        # <source_package> | <version> | <suite> | source
-        values = [c.strip() for c in line.split("|")]
+    try:
+        published = context.lp.distributions["ubuntu"].main_archive.getPublishedSources(
+            source_name=package, exact_match=True, status="Published"
+        )
 
-        if len(values) < 4:
-            context.lint_error(f"Unexpected line from rmadison: {line}")
+        for entry in published:
+            version = entry.source_package_version
+            series = entry.distro_series_link.rstrip("/").rpartition("/")[2]
+            pocket = entry.pocket
 
-        version = values[1]
-        suite = values[2].partition("/")[0]
-        series, _, pocket = suite.partition("-")
+            if pocket == "Backports":
+                # Exclude -backports, as different rules apply.
+                continue
 
-        if pocket == "backports":
-            # Exclude -backports, as different rules apply.
-            continue
-
-        try:
-            if (
-                debian_support.version_compare(version, max_version_by_series[series])
-                > 0
-            ):
+            try:
+                if (
+                    debian_support.version_compare(
+                        version, max_version_by_series[series]
+                    )
+                    > 0
+                ):
+                    max_version_by_series[series] = version
+            except KeyError:
                 max_version_by_series[series] = version
-        except KeyError:
-            max_version_by_series[series] = version
+
+    except (HTTPError, HttpLib2Error, OSError) as e:
+        context.lint_error(f"failed to query Launchpad for {package} ({e})")
 
     return max_version_by_series
 
