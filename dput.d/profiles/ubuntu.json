@@ -3,6 +3,7 @@
         "merge-missing-new-debian-changelog",
         "missing-git-ubuntu-references",
         "missing-launchpad-bugs-fixed",
+        "missing-orig-tarball",
         "missing-pending-changelog-entry",
         "missing-ubuntu-maintainer",
         "missing-version-suffix",
