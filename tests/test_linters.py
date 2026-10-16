@@ -829,6 +829,152 @@ python3-defaults ({prev_version}) jammy; urgency=high
                 ubuntu_lint.check_sru_version_string_convention(context)
 
 
+@pytest.mark.parametrize(
+    "prev_version, next_version, expect",
+    [
+        # 2.10 -> "2.10ubuntu0.1"
+        ("2.10", "2.10ubuntu0.1", ubuntu_lint.LintResult.OK),
+        ("2.10", "2.10~24.04.1", ubuntu_lint.LintResult.OK),
+        ("2.10", "2.10ubuntu1", ubuntu_lint.LintResult.FAIL),
+        ("2.10", "2.11", ubuntu_lint.LintResult.FAIL),
+        # 2.10ubuntu0.1 -> "2.10-3ubuntu0.2"
+        ("2.10ubuntu0.1", "2.10ubuntu0.2", ubuntu_lint.LintResult.OK),
+        ("2.10ubuntu0.1", "2.10ubuntu1", ubuntu_lint.LintResult.FAIL),
+        # 2.10ubuntu2 -> "2.10-3ubuntu2.1"
+        ("2.10ubuntu2", "2.10ubuntu2.1", ubuntu_lint.LintResult.OK),
+        ("2.10ubuntu2", "2.10ubuntu3", ubuntu_lint.LintResult.FAIL),
+        # 2.10ubuntu2.1 -> "2.10ubuntu2.2"
+        ("2.10ubuntu2.1", "2.10ubuntu2.2", ubuntu_lint.LintResult.OK),
+        ("2.10ubuntu2.1", "2.10ubuntu3", ubuntu_lint.LintResult.FAIL),
+        # 2.10build1 -> 2.10ubuntu0.1
+        ("2.10build1", "2.10ubuntu0.1", ubuntu_lint.LintResult.OK),
+        ("2.10build1", "2.10build2", ubuntu_lint.LintResult.FAIL),
+        ("2.10build1", "2.10ubuntu1", ubuntu_lint.LintResult.FAIL),
+        # 2.10ubuntu0.24.04.1 -> 2.10ubuntu0.24.04.2
+        ("2.10ubuntu0.24.04.1", "2.10ubuntu0.24.04.2", ubuntu_lint.LintResult.OK),
+        ("2.10ubuntu0.24.04.1", "2.10ubuntu1", ubuntu_lint.LintResult.FAIL),
+        ("2.10.1", "2.10.1ubuntu1", ubuntu_lint.LintResult.FAIL),
+        # 2.10.1ubuntu0.1 -> 2.10.1ubuntu0.2
+        ("2.10.1ubuntu0.1", "2.10.1ubuntu0.2", ubuntu_lint.LintResult.OK),
+        # 2.11~24.04.1 -> 2.11~24.04.2
+        ("2.11~24.04.1", "2.11~24.04.2", ubuntu_lint.LintResult.OK),
+    ],
+)
+def test_check_sru_version_string_convention_native(
+    mock_lp_handle, prev_version: str, next_version: str, expect: ubuntu_lint.LintResult
+):
+    changelog_tmpl = """hello ({next_version}) noble; urgency=medium
+
+  * Fix a bug (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Wed, 11 Mar 2026 16:01:41 -0400
+
+hello ({prev_version}) noble; urgency=high
+
+  * No change rebuild for 64-bit time_t and frame pointers.
+
+ -- John Doe <john.doe@example.com>  Mon, 08 Apr 2024 17:58:52 +0200
+"""
+
+    rmadison_tmpl = textwrap.dedent("""hello | {prev_version}| noble           | source
+               hello | 2.12        | questing        | source
+               hello | 2.12build1  | resolute        | source
+    """)
+
+    mock_lp_handle.main_archive.getPublishedSources.return_value = lp_published_sources(
+        rmadison_tmpl.format(prev_version=prev_version)
+    )
+    debian_changelog = changelog.Changelog(
+        changelog_tmpl.format(
+            prev_version=prev_version,
+            next_version=next_version,
+        )
+    )
+    context = ubuntu_lint.Context(
+        debian_changelog=debian_changelog, launchpad_handle=mock_lp_handle
+    )
+
+    if expect == ubuntu_lint.LintResult.OK:
+        ubuntu_lint.check_sru_version_string_convention(context)
+    else:
+        with pytest.raises(
+            ubuntu_lint.LintException,
+            match=re.escape(f"{next_version} does not match expected version"),
+        ) as e:
+            ubuntu_lint.check_sru_version_string_convention(context)
+
+        assert expect == e.value.result
+
+
+@pytest.mark.parametrize(
+    "prev_version, next_version, expect",
+    [
+        # 2.10 in two releases -> 2.10ubuntu0.24.04.1
+        ("2.10", "2.10ubuntu0.24.04.1", ubuntu_lint.LintResult.OK),
+        ("2.10", "2.10ubuntu0.1", ubuntu_lint.LintResult.FAIL),
+        ("2.10", "2.10ubuntu1", ubuntu_lint.LintResult.FAIL),
+        ("2.10", "2.11", ubuntu_lint.LintResult.FAIL),
+        # 2.10build1 in two releases -> 2.10ubuntu0.24.04.1
+        ("2.10build1", "2.10ubuntu0.24.04.1", ubuntu_lint.LintResult.OK),
+        ("2.10build1", "2.10ubuntu0.1", ubuntu_lint.LintResult.FAIL),
+        ("2.10build1", "2.10ubuntu1", ubuntu_lint.LintResult.FAIL),
+        ("2.10build1", "2.10build2", ubuntu_lint.LintResult.FAIL),
+        # 2.10ubuntu1 in two releases -> 2.10ubuntu1.24.04.1
+        ("2.10ubuntu1", "2.10ubuntu1.24.04.1", ubuntu_lint.LintResult.OK),
+        ("2.10ubuntu1", "2.10ubuntu1.1", ubuntu_lint.LintResult.FAIL),
+        ("2.10ubuntu1", "2.10ubuntu2", ubuntu_lint.LintResult.FAIL),
+        # 2.10ubuntu1.1 in two releases -> 2.10ubuntu1.1.24.04.1
+        ("2.10ubuntu1.1", "2.10ubuntu1.1.24.04.1", ubuntu_lint.LintResult.OK),
+        ("2.10ubuntu1.1", "2.10ubuntu1.2", ubuntu_lint.LintResult.FAIL),
+        ("2.10ubuntu1.1", "2.10ubuntu2", ubuntu_lint.LintResult.FAIL),
+    ],
+)
+def test_check_sru_version_string_convention_native_multiple_series(
+    mock_lp_handle, prev_version: str, next_version: str, expect: ubuntu_lint.LintResult
+):
+    changelog_tmpl = """hello ({next_version}) noble; urgency=medium
+
+  * Fix a bug (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Wed, 11 Mar 2026 16:01:41 -0400
+
+hello ({prev_version}) noble; urgency=high
+
+  * No change rebuild for 64-bit time_t and frame pointers.
+
+ -- John Doe <john.doe@example.com>  Mon, 08 Apr 2024 17:58:52 +0200
+"""
+
+    # Same version in two releases
+    rmadison_tmpl = textwrap.dedent("""hello | {prev_version}| noble           | source
+          hello | {prev_version}| questing        | source
+          hello | 2.12build1  | resolute        | source
+    """)
+    mock_lp_handle.main_archive.getPublishedSources.return_value = lp_published_sources(
+        rmadison_tmpl.format(prev_version=prev_version)
+    )
+    debian_changelog = changelog.Changelog(
+        changelog_tmpl.format(
+            prev_version=prev_version,
+            next_version=next_version,
+        )
+    )
+    context = ubuntu_lint.Context(
+        debian_changelog=debian_changelog, launchpad_handle=mock_lp_handle
+    )
+
+    if expect == ubuntu_lint.LintResult.OK:
+        ubuntu_lint.check_sru_version_string_convention(context)
+    else:
+        with pytest.raises(
+            ubuntu_lint.LintException,
+            match=re.escape(f"{next_version} does not match expected version"),
+        ) as e:
+            ubuntu_lint.check_sru_version_string_convention(context)
+
+        assert expect == e.value.result
+
+
 def test_check_release_mismatch():
     changelog_tmpl = """hello ({version}) {distribution}; urgency=medium
 

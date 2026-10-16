@@ -377,38 +377,49 @@ def check_sru_version_string_convention(context: Context):
     next_version = context.get_package_version()
     prev_version = context.changelog_entry_by_index(1).version
 
-    if not prev_version.debian_version:
-        context.lint_skip(
-            "check not implemented for native packages, "
-            f"please check {docs} to ensure version string is correct"
-        )
-
-    # Match the whole numeric Debian revision, including any dots (e.g. NMU-style
-    # "4.1"), so it isn't mistaken for a trailing Ubuntu revision.
-    match = re.match(r"[0-9]+(?:\.[0-9]+)*", prev_version.debian_version)
-    if match:
-        upstream_version, debian_revision, ubuntu_revision = str(
-            prev_version
-        ).rpartition(f"-{match.group()}")
-
     series_version = distro_info.UbuntuDistroInfo().version(context.get_series())
     # Strip off " LTS" if needed.
     series_version = series_version.partition(" ")[0]
 
-    if (
-        debian_support.version_compare(
-            next_version.upstream_version, prev_version.upstream_version
-        )
-        > 0
-    ):
-        # Handle new upstream version separately from the rest. This check could be
-        # expanded in the future to cover more cases, but at the very least, the new
-        # version should end in e.g. 24.04.1.
-        if not str(next_version).endswith(f"{series_version}.1"):
-            context.lint_fail(
-                f"version string for new upstream should contain suffix {series_version}.1"
+    if prev_version.debian_version:
+        # Match the whole numeric Debian revision, including any dots (e.g. NMU-style
+        # "4.1"), so it isn't mistaken for a trailing Ubuntu revision.
+        match = re.match(r"[0-9]+(?:\.[0-9]+)*", prev_version.debian_version)
+        if match:
+            upstream_version, debian_revision, ubuntu_revision = str(
+                prev_version
+            ).rpartition(f"-{match.group()}")
+
+        if (
+            debian_support.version_compare(
+                next_version.upstream_version, prev_version.upstream_version
             )
-        return
+            > 0
+        ):
+            # Handle new upstream version separately from the rest. This check could be
+            # expanded in the future to cover more cases, but at the very least, the new
+            # version should end in e.g. 24.04.1.
+            if not str(next_version).endswith(f"{series_version}.1"):
+                context.lint_fail(
+                    f"version string for new upstream should contain suffix {series_version}.1"
+                )
+            return
+    else:
+        # Native packages
+        debian_revision = ""
+
+        upstream_version, mid, end = str(prev_version).partition("ubuntu")
+        if not mid:
+            # Try another well-known convention. Otherwise assume the entire thing
+            # is the "upstream" with no Ubuntu delta.
+            upstream_version, mid, end = str(prev_version).partition("build")
+
+        ubuntu_revision = mid + end
+
+        if not ubuntu_revision:
+            match = re.fullmatch(r"(.+)(~[0-9]{2}\.[0-9]{2}\.[0-9]+)", upstream_version)
+            if match:
+                upstream_version, ubuntu_revision = match.groups()
 
     # If the previous version is published across multiple series, then we expect e.g.
     # ubuntu24.04.x suffixes.
