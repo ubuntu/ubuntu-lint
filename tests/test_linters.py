@@ -305,6 +305,7 @@ def lp_published_sources(rmadison: str):
                 source_package_version=values[1],
                 distro_series_link=f"https://api.launchpad.net/devel/ubuntu/{series}",
                 pocket=pocket.capitalize() if pocket else "Release",
+                status="Published",
             )
         )
 
@@ -498,6 +499,61 @@ def test_check_sru_version_string_breaks_upgrades(mock_lp_handle):
             )
 
 
+def test_check_sru_version_string_breaks_upgrades_with_pending(mock_lp_handle):
+    entries = lp_published_sources(
+        textwrap.dedent("""hello | 2.8-4         | trusty          | source
+               hello | 2.10-1        | xenial          | source
+               hello | 2.10-1build1  | bionic          | source
+               hello | 2.10-1build3  | bionic-security | source
+               hello | 2.10-1build3  | bionic-updates  | source
+               hello | 2.10-2ubuntu2 | focal           | source
+               hello | 2.10-2ubuntu4 | jammy           | source
+               hello | 2.10-3build1  | noble           | source
+               hello | 2.10-5build1  | resolute        | source
+        """)
+    )
+
+    def side_effect_pending_upload(*args, **kwargs):
+        ret = []
+        status = kwargs.get("status", [])
+
+        statuses = []
+        if isinstance(status, str):
+            statuses = [status]
+        elif isinstance(status, list):
+            statuses = status
+
+        if "Published" in statuses:
+            ret = entries
+        if "Pending" in statuses:
+            ret.append(
+                SimpleNamespace(
+                    source_package_version="2.11-0ubuntu0.26.04.1",
+                    distro_series_link="https://api.launchpad.net/devel/ubuntu/resolute",
+                    pocket="Proposed",
+                    status="Pending",
+                )
+            )
+
+        if not ret:
+            raise pytest.fail("mock implementation is buggy")
+
+        return ret
+
+    # Simulate backporting new upstream to resolute and noble.
+    changes_new_upstream = copy.deepcopy(basic_changes_sru)
+    changes_new_upstream["Version"] = "2.11-0ubuntu0.24.04.1"
+
+    mock_lp_handle.main_archive.getPublishedSources.side_effect = (
+        side_effect_pending_upload
+    )
+    ubuntu_lint.check_sru_version_string_breaks_upgrades(
+        ubuntu_lint.Context(
+            changes=changes_new_upstream, launchpad_handle=mock_lp_handle
+        )
+    )
+
+
 def test_rmadison_get_max_version_by_series(mock_lp_handle):
     from ubuntu_lint.linters import _rmadison_get_max_version_by_series
 
@@ -522,7 +578,7 @@ def test_rmadison_get_max_version_by_series(mock_lp_handle):
     }
     mock_lp_handle.distributions.__getitem__.assert_called_once_with("ubuntu")
     mock_lp_handle.main_archive.getPublishedSources.assert_called_once_with(
-        source_name="hello", exact_match=True, status="Published"
+        source_name="hello", exact_match=True, status=["Published"]
     )
 
     mock_lp_handle.main_archive.getPublishedSources.return_value = []

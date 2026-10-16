@@ -279,7 +279,9 @@ def check_release_mismatch(context: Context):
 
 
 @lru_cache(maxsize=128)
-def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
+def _rmadison_get_max_version_by_series(
+    context: Context, pending: bool = False
+) -> dict[str, str]:
     """
     Construct a map of series -> highest version (excluding -backports). This can then
     be used to compare the target version against all newer releases, to ensure it
@@ -290,10 +292,14 @@ def _rmadison_get_max_version_by_series(context: Context) -> dict[str, str]:
     """
     package = context.get_source_package_name()
 
+    statuses = ["Published"]
+    if pending:
+        statuses.append("Pending")
+
     max_version_by_series: dict[str, str] = {}
     try:
         published = context.lp.distributions["ubuntu"].main_archive.getPublishedSources(
-            source_name=package, exact_match=True, status="Published"
+            source_name=package, exact_match=True, status=statuses
         )
 
         for entry in published:
@@ -331,7 +337,7 @@ def check_sru_version_string_breaks_upgrades(context: Context):
     if not context.is_stable_release():
         context.lint_skip("this check applies to SRUs only")
 
-    max_version_by_series = _rmadison_get_max_version_by_series(context)
+    max_version_by_series = _rmadison_get_max_version_by_series(context, pending=True)
 
     target_version = context.get_package_version()
     target_series = context.get_series()
