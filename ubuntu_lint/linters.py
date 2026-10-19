@@ -387,7 +387,7 @@ def check_sru_version_string_convention(context: Context):
     # "4.1"), so it isn't mistaken for a trailing Ubuntu revision.
     match = re.match(r"[0-9]+(?:\.[0-9]+)*", prev_version.debian_version)
     if match:
-        upstream_version, debian_revison, ubuntu_revision = str(
+        upstream_version, debian_revision, ubuntu_revision = str(
             prev_version
         ).rpartition(f"-{match.group()}")
 
@@ -423,8 +423,8 @@ def check_sru_version_string_convention(context: Context):
     valid_expects: set[str] = set()
     if not ubuntu_revision:
         # E.g. 2.0-1 -> 2.0-1ubuntu0.1
-        expect = f"{upstream_version}{debian_revison}ubuntu0{suffix_extra}.1"
-        valid_expects.add(f"{upstream_version}{debian_revison}~{series_version}.1")
+        expect = f"{upstream_version}{debian_revision}ubuntu0{suffix_extra}.1"
+        valid_expects.add(f"{upstream_version}{debian_revision}~{series_version}.1")
     elif ubuntu_revision.startswith("~"):
         # E.g. 2.0-1~24.04.1 -> 2.0-1~24.04.2
         try:
@@ -432,12 +432,12 @@ def check_sru_version_string_convention(context: Context):
             parts[-1] = str(int(parts[-1]) + 1)
             new_ubuntu_revision = ".".join(parts)
 
-            expect = f"{upstream_version}{debian_revison}{new_ubuntu_revision}"
+            expect = f"{upstream_version}{debian_revision}{new_ubuntu_revision}"
         except ValueError:
             context.lint_error(f"cannot handle version string format {prev_version}")
     elif "ubuntu" not in ubuntu_revision:
         # E.g. 2.0-1build1 -> 2.0-1ubuntu0.1
-        expect = f"{upstream_version}{debian_revison}ubuntu0{suffix_extra}.1"
+        expect = f"{upstream_version}{debian_revision}ubuntu0{suffix_extra}.1"
     elif "." not in ubuntu_revision:
         # E.g. 2.0-1ubuntu1 -> 2.0-1ubuntu1.1
         expect = f"{str(prev_version)}{suffix_extra}.1"
@@ -451,7 +451,7 @@ def check_sru_version_string_convention(context: Context):
             parts[-1] = str(int(parts[-1]) + 1)
             new_ubuntu_revision = ".".join(parts)
 
-            expect = f"{upstream_version}{debian_revison}{new_ubuntu_revision}"
+            expect = f"{upstream_version}{debian_revision}{new_ubuntu_revision}"
         except ValueError:
             context.lint_error(f"cannot handle version string format {prev_version}")
 
