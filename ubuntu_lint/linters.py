@@ -621,3 +621,64 @@ def check_bug_references_target_wrong_package(context: Context):
                 package,
             )
         )
+
+
+def check_missing_orig_tarball(context: Context):
+    """
+    Check that if the upstream version is bumped for a non-native package, then the orig
+    tarball is included in the upload.
+    """
+    source_name = context.get_source_package_name()
+    next_version = context.get_package_version()
+
+    if not next_version.debian_version:
+        context.lint_skip("package is native")
+
+    di = distro_info.UbuntuDistroInfo()
+    index = 1
+    while True:
+        try:
+            entry = context.changelog_entry_by_index(index)
+            if di.valid(str(entry.distributions).partition("-")[0]):
+                break
+
+            index += 1
+
+        except IndexError:
+            if index == 1:
+                index = 0
+            else:
+                index = 1
+            break
+
+    # If there is only one changelog entry, this is a new upstream by definition.
+    if index >= 1:
+        prev_version = context.changelog_entry_by_index(index).version
+
+        if (
+            debian_support.version_compare(
+                next_version.upstream_version, prev_version.upstream_version
+            )
+            <= 0
+        ):
+            # Not a new upstream version.
+            return
+
+    files = context.changes.get_as_string("Files")
+    if not files:
+        context.lint_error("changes file is missing Files section")
+
+    for line in files.splitlines():
+        fields = line.split()
+        if not fields:
+            continue
+
+        if re.match(
+            rf"^{source_name}_{re.escape(str(next_version.upstream_version))}"
+            r"\.orig\.tar\.(xz|gz|bz2|lzma)\Z",
+            fields[-1],
+        ):
+            # Found the orig tarball
+            break
+    else:
+        context.lint_fail("upload is missing orig tarball for new upstream version")

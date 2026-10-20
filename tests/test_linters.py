@@ -1648,3 +1648,197 @@ def test_context_changelog_from_tar_without_changelog(tmp_path):
 
     with pytest.raises(ValueError, match="invalid content"):
         ubuntu_lint.Context(debian_tar=debian_tar)
+
+
+@pytest.mark.parametrize(
+    "orig_tarball",
+    [
+        "hello_2.12.orig.tar.gz",
+        "hello_2.12.orig.tar.xz",
+        "hello_2.12.orig.tar.bz2",
+        "hello_2.12.orig.tar.lzma",
+    ],
+)
+def test_check_missing_orig_tarball(orig_tarball: str):
+    changes_tmpl = """
+Format: 1.8
+Date: Mon, 26 Jan 2026 15:13:02 -0500
+Source: hello
+Built-For-Profiles: noudeb
+Architecture: source
+Version: 2.12-0ubuntu1
+Distribution: resolute
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: John Doe <john.doe@example.com>
+Launchpad-Bugs-Fixed: 12345678
+Changes:
+ hello (2.12-0ubuntu1) resolute; urgency=medium
+ .
+   * New upstream (LP: #12345678)
+Checksums-Sha1:
+ f69ac22584593891440e320777ccb038568c6809 1298 hello_2.12-1ubuntu1.dsc
+ {sha1_line}5eea7226f111d7a874b0b2a7d4586dee3bb9707a 12876 hello_2.12-1ubuntu1.debian.tar.xz
+ d503db0bad6eb221f1cb96d8fea3d396dc4c2e01 6025 hello_2.12-1ubuntu1_source.buildinfo
+Checksums-Sha256:
+ fe698e4496f18a6575fdbb2bc79bd97289b26d1838da88271f285b9c2a625d84 1298 hello_2.12-1ubuntu1.dsc
+ {sha256_line}37df32119bebf1af5ae8cd793f85a712233b1a5e055d0a517c3a483074255735 12876 hello_2.12-1ubuntu1.debian.tar.xz
+ 03c853b26f1fe5d8ec43831462ceea0d714e0b77f1f253909419f8dc1667c449 6025 hello_2.12-1ubuntu1_source.buildinfo
+Files:
+ 1d4d7dc915ed16973febc95ae80d73ed 1298 devel optional hello_2.12-1ubuntu1.dsc
+ {file_line}2be6a13bd3827fa7a051fb1b52d37672 12876 devel optional hello_2.12-1ubuntu1.debian.tar.xz
+ 2b095557f297d3f85e85a72363dd1019 6025 devel optional hello_2.12-1ubuntu1_source.buildinfo
+Original-Maintainer: Joe Schmoe <joe.schmoe@debian.org>
+"""
+
+    changelog_new_upstream = changelog.Changelog(file="""
+hello (2.12-0ubuntu1) resolute; urgency=medium
+
+  * New upstream (LP: #12345678)
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+
+hello (2.11-2build1) resolute; urgency=medium
+
+  * No-change rebuild
+
+ -- Joe Schmoe <joe.schmoe@debian.org>  Mon, 19 Jan 2026 15:13:02 -0500
+
+hello (2.11-2) unstable; urgency=medium
+
+  * Fix a bug
+
+ -- Joe Schmoe <joe.schmoe@debian.org>  Mon, 12 Jan 2026 15:13:02 -0500
+""")
+
+    changes_new_upstream = deb822.Changes(
+        changes_tmpl.format(
+            sha1_line=f"220fff123123123123feeeeee123119090bababa 10000 {orig_tarball}\n",
+            sha256_line=f"439849832984032840932feedbeefbeef0000fff123123123123feeeeee12311 10000 {orig_tarball}\n",
+            file_line=f"090943090391409eedbeeffe4319891 10000 devel optional {orig_tarball}\n",
+        )
+    )
+    ubuntu_lint.check_missing_orig_tarball(
+        ubuntu_lint.Context(
+            changes=changes_new_upstream,
+            debian_changelog=changelog_new_upstream,
+        )
+    )
+
+    # Simulate missing orig tarball
+    changes_missing_orig_tarball = deb822.Changes(
+        changes_tmpl.format(sha1_line="", sha256_line="", file_line="")
+    )
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match="upload is missing orig tarball for new upstream version",
+    ):
+        ubuntu_lint.check_missing_orig_tarball(
+            ubuntu_lint.Context(
+                changes=changes_missing_orig_tarball,
+                debian_changelog=changelog_new_upstream,
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "orig_tarball",
+    [
+        "hello_2.12.orig.tar.gz",
+        "hello_2.12.orig.tar.xz",
+        "hello_2.12.orig.tar.bz2",
+        "hello_2.12.orig.tar.lzma",
+    ],
+)
+def test_check_missing_orig_tarball_merge(orig_tarball: str):
+    changes_tmpl = """
+Format: 1.8
+Date: Mon, 26 Jan 2026 15:13:02 -0500
+Source: hello
+Built-For-Profiles: noudeb
+Architecture: source
+Version: 2.12-1ubuntu1
+Distribution: resolute
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: John Doe <john.doe@example.com>
+Launchpad-Bugs-Fixed: 12345678
+Changes:
+ hello (2.12-1ubuntu1) resolute; urgency=medium
+ .
+   * Merge from Debian unstable (LP: #12345678)
+ .
+ hello (2.12-1) unstable; urgency=medium
+ .
+   * New upstream release
+ .
+ hello (2.11-2) unstable; urgency=medium
+ .
+   * Fix a bug
+ .
+ hello (2.11-1) unstable; urgency=medium
+ .
+   * New upstream release
+Checksums-Sha1:
+ f69ac22584593891440e320777ccb038568c6809 1298 hello_2.12-1ubuntu1.dsc
+ {sha1_line}5eea7226f111d7a874b0b2a7d4586dee3bb9707a 12876 hello_2.12-1ubuntu1.debian.tar.xz
+ d503db0bad6eb221f1cb96d8fea3d396dc4c2e01 6025 hello_2.12-1ubuntu1_source.buildinfo
+Checksums-Sha256:
+ fe698e4496f18a6575fdbb2bc79bd97289b26d1838da88271f285b9c2a625d84 1298 hello_2.12-1ubuntu1.dsc
+ {sha256_line}37df32119bebf1af5ae8cd793f85a712233b1a5e055d0a517c3a483074255735 12876 hello_2.12-1ubuntu1.debian.tar.xz
+ 03c853b26f1fe5d8ec43831462ceea0d714e0b77f1f253909419f8dc1667c449 6025 hello_2.12-1ubuntu1_source.buildinfo
+Files:
+ 1d4d7dc915ed16973febc95ae80d73ed 1298 devel optional hello_2.12-1ubuntu1.dsc
+ {file_line}2be6a13bd3827fa7a051fb1b52d37672 12876 devel optional hello_2.12-1ubuntu1.debian.tar.xz
+ 2b095557f297d3f85e85a72363dd1019 6025 devel optional hello_2.12-1ubuntu1_source.buildinfo
+Original-Maintainer: Joe Schmoe <joe.schmoe@debian.org>
+"""
+
+    changes_merge = deb822.Changes(
+        changes_tmpl.format(
+            sha1_line=f"220fff123123123123feeeeee123119090bababa 10000 {orig_tarball}\n",
+            sha256_line=f"439849832984032840932feedbeefbeef0000fff123123123123feeeeee12311 10000 {orig_tarball}\n",
+            file_line=f"090943090391409eedbeeffe4319891 10000 devel optional {orig_tarball}\n",
+        )
+    )
+    ubuntu_lint.check_missing_orig_tarball(
+        ubuntu_lint.Context(
+            changes=changes_merge,
+            debian_changelog=basic_changelog_merge,
+        )
+    )
+
+    # Simulate missing orig tarball
+    changes_missing_orig_tarball = deb822.Changes(
+        changes_tmpl.format(sha1_line="", sha256_line="", file_line="")
+    )
+    with pytest.raises(
+        ubuntu_lint.LintException,
+        match="upload is missing orig tarball for new upstream version",
+    ):
+        ubuntu_lint.check_missing_orig_tarball(
+            ubuntu_lint.Context(
+                changes=changes_missing_orig_tarball,
+                debian_changelog=basic_changelog_merge,
+            )
+        )
+
+
+def test_check_missing_orig_tarball_native():
+    changes = copy.deepcopy(basic_changes_no_ubuntu_delta)
+    changes["Version"] = "2.12"
+
+    dch = changelog.Changelog(file="""
+hello (2.12) resolute; urgency=medium
+
+  * New upstream release
+
+ -- John Doe <john.doe@example.com>  Mon, 26 Jan 2026 15:13:02 -0500
+""")
+
+    with pytest.raises(ubuntu_lint.LintException, match="package is native") as e:
+        ubuntu_lint.check_missing_orig_tarball(
+            ubuntu_lint.Context(changes=changes, debian_changelog=dch)
+        )
+
+    assert e.value.result == ubuntu_lint.LintResult.SKIP
