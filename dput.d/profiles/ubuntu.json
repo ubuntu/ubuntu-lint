@@ -11,6 +11,7 @@
         "sru-bug-missing-release-tasks",
         "sru-bug-missing-template",
         "sru-version-string-breaks-upgrades",
-        "sru-version-string-convention"
+        "sru-version-string-convention",
+        "missing-orig-tarball"
     ]
 }

@@ -275,3 +275,16 @@ def dput_bug_references_target_wrong_package(
         interface,
         can_ignore=True,
     )
+
+
+def dput_missing_orig_tarball(changes: Changes, profile: dict, interface: CLInterface):
+    """
+    Hook wrapper around ubuntu_lint.check_missing_orig_tarball.
+    """
+    call_lint_as_hook(
+        ubuntu_lint.check_missing_orig_tarball,
+        changes,
+        profile,
+        interface,
+        can_ignore=True,
+    )

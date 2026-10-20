@@ -1,5 +1,11 @@
 hello (2.10-5ubuntu1) resolute; urgency=medium
 
-  * Testting 123 (LP: #1234567)
+  * Testing 123 (LP: #1234567)
 
  -- John Doe <john.doe@ubuntu.com>  Mon, 26 Jan 2026 15:13:02 -0500
+
+hello (2.10-5) unstable; urgency=medium
+
+  * Upload to unstable
+
+ -- John Doe <john.doe@debian.org>  Mon, 26 Jan 2026 15:13:02 -0500
