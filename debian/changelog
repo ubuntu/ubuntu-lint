@@ -1,12 +1,6 @@
-ubuntu-lint (0.3.1ubuntu) tenacious; urgency=medium
+ubuntu-lint (0.3.1ubuntu~26.10.1) stonking; urgency=medium
 
-  * linters: do not consider EOL series in rmadison data
-
- -- Nick Rosbrook <enr0n@ubuntu.com>  Wed, 21 Oct 2026 14:46:32 -0500
-
-ubuntu-lint (0.3.0ubuntu) tenacious; urgency=medium
-
-  * New upstream version 0.3.0 (LP: #2171548)
+  * Release 0.3.1 (LP: #2171548)
     - CONTRIBUTING.md: add initial
     - context: handle distro_info.DistroDataOutdated
     - dput: introduce bug-references-target-wrong-package
@@ -19,8 +13,9 @@ ubuntu-lint (0.3.0ubuntu) tenacious; urgency=medium
     - linters: introduce check_bug_references_target_wrong_package()
     - linters: introduce check_missing_orig_tarball
     - linters: query Launchpad instead of madison.cgi for published versions
+    - linters: do not consider EOL series in rmadison data
 
- -- Nick Rosbrook <enr0n@ubuntu.com>  Tue, 20 Oct 2026 22:38:41 -0500
+ -- Nick Rosbrook <enr0n@ubuntu.com>  Wed, 21 Oct 2026 14:55:38 -0500
 
 ubuntu-lint (0.2.3ubuntu) stonking; urgency=medium
 
