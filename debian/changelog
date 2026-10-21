@@ -1,3 +1,9 @@
+ubuntu-lint (0.3.1ubuntu) tenacious; urgency=medium
+
+  * linters: do not consider EOL series in rmadison data
+
+ -- Nick Rosbrook <enr0n@ubuntu.com>  Wed, 21 Oct 2026 14:46:32 -0500
+
 ubuntu-lint (0.3.0ubuntu) tenacious; urgency=medium
 
   * New upstream version 0.3.0 (LP: #2171548)
