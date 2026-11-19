@@ -413,24 +413,10 @@ def check_sru_version_string_convention(context: Context):
             prev_version
         ).rpartition(f"-{match.group()}")
 
-    series_version = distro_info.UbuntuDistroInfo().version(context.get_series())
     # Strip off " LTS" if needed.
-    series_version = series_version.partition(" ")[0]
-
-    if (
-        debian_support.version_compare(
-            next_version.upstream_version, prev_version.upstream_version
-        )
-        > 0
-    ):
-        # Handle new upstream version separately from the rest. This check could be
-        # expanded in the future to cover more cases, but at the very least, the new
-        # version should end in e.g. 24.04.1.
-        if not str(next_version).endswith(f"{series_version}.1"):
-            context.lint_fail(
-                f"version string for new upstream should contain suffix {series_version}.1"
-            )
-        return
+    series_version = (
+        distro_info.UbuntuDistroInfo().version(context.get_series()).partition(" ")[0]
+    )
 
     # If the previous version is published across multiple series, then we expect e.g.
     # ubuntu24.04.x suffixes.
@@ -440,6 +426,26 @@ def check_sru_version_string_convention(context: Context):
     suffix_extra: str = ""
     if series_with_version > 1:
         suffix_extra = f".{series_version}"
+
+    if (
+        debian_support.version_compare(
+            next_version.upstream_version, prev_version.upstream_version
+        )
+        > 0
+    ):
+        # Handle new upstream version separately from the rest.
+        valid_suffixes = [f"{series_version}.1"]
+
+        if series_with_version <= 1:
+            valid_suffixes.append("ubuntu0.1")
+
+        for suffix in valid_suffixes:
+            if str(next_version).endswith(suffix):
+                return
+
+        context.lint_fail(
+            f"version string for new upstream should end in one of {valid_suffixes}"
+        )
 
     expect: str = ""
     valid_expects: set[str] = set()

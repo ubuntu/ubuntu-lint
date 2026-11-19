@@ -753,39 +753,57 @@ hello ({prev_version}) noble; urgency=high
                     ubuntu_lint.check_sru_version_string_convention(context)
 
     # Test cases for new upstream version
-    testcases = [
-        # 2.10-3ubuntu1 -> 2.11-0ubuntu0.24.04.1 (new upstream)
-        ("2.10-3ubuntu1", "2.11-0ubuntu0.24.04.1", True),
-        ("2.10-3ubuntu1", "2.11-0ubuntu0.1", False),
-        # 2.10-3ubuntu1 -> 2.11-0ubuntu0~24.04.1 (new upstream)
-        ("2.10-3ubuntu1", "2.11-0ubuntu0~24.04.1", True),
-        # 2.10-3ubuntu1 -> 2.11-1ubuntu2~24.04.1 (devel backport)
-        ("2.10-3ubuntu1", "2.11-1ubuntu2~24.04.1", True),
-        ("2.10-3ubuntu1", "2.11-1ubuntu2", False),
+    testcases_list = [
+        [
+            # 2.10-3ubuntu1 -> 2.11-0ubuntu0.24.04.1 (new upstream)
+            ("2.10-3ubuntu1", "2.11-0ubuntu0.24.04.1", True),
+            # 2.10-3ubuntu1 -> 2.11-0ubuntu0.1 (new upstream, ubuntu0.1 suffix)
+            ("2.10-3ubuntu1", "2.11-0ubuntu0.1", True),
+            # 2.10-3ubuntu1 -> 2.11-0ubuntu0~24.04.1 (new upstream)
+            ("2.10-3ubuntu1", "2.11-0ubuntu0~24.04.1", True),
+            # 2.10-3ubuntu1 -> 2.11-1ubuntu2~24.04.1 (devel backport)
+            ("2.10-3ubuntu1", "2.11-1ubuntu2~24.04.1", True),
+            ("2.10-3ubuntu1", "2.11-1ubuntu2", False),
+            ("2.10-3ubuntu1", "2.11-0ubuntu1", False),
+        ],
+        [
+            # 2.10-5 in multiple series -> only the series suffix is allowed
+            ("2.10-5", "2.11-0ubuntu0.24.04.1", True),
+            ("2.10-5", "2.11-0ubuntu0.1", False),
+            ("2.10-5", "2.11-0ubuntu0~24.04.1", True),
+            # 2.10-5 -> 2.11-1ubuntu2~24.04.1 (devel backport)
+            ("2.10-5", "2.11-1ubuntu2~24.04.1", True),
+            ("2.10-5", "2.11-1ubuntu2", False),
+            ("2.10-5", "2.11-0ubuntu1", False),
+        ],
     ]
 
-    for prev_version, next_version, expect_pass in testcases:
-        mock_lp_handle.main_archive.getPublishedSources.return_value = (
-            lp_published_sources(rmadison_tmpls[0].format(prev_version=prev_version))
-        )
-        debian_changelog = changelog.Changelog(
-            changelog_tmpl.format(
-                prev_version=prev_version,
-                next_version=next_version,
-            )
-        )
-        context = ubuntu_lint.Context(
-            debian_changelog=debian_changelog, launchpad_handle=mock_lp_handle
-        )
+    for i in range(len(testcases_list)):
+        rmadison_tmpl = rmadison_tmpls[i]
+        testcases = testcases_list[i]
 
-        if expect_pass:
-            ubuntu_lint.check_sru_version_string_convention(context)
-        else:
-            with pytest.raises(
-                ubuntu_lint.LintException,
-                match="version string for new upstream should contain suffix",
-            ):
+        for prev_version, next_version, expect_pass in testcases:
+            mock_lp_handle.main_archive.getPublishedSources.return_value = (
+                lp_published_sources(rmadison_tmpl.format(prev_version=prev_version))
+            )
+            debian_changelog = changelog.Changelog(
+                changelog_tmpl.format(
+                    prev_version=prev_version,
+                    next_version=next_version,
+                )
+            )
+            context = ubuntu_lint.Context(
+                debian_changelog=debian_changelog, launchpad_handle=mock_lp_handle
+            )
+
+            if expect_pass:
                 ubuntu_lint.check_sru_version_string_convention(context)
+            else:
+                with pytest.raises(
+                    ubuntu_lint.LintException,
+                    match="version string for new upstream should end in one of",
+                ):
+                    ubuntu_lint.check_sru_version_string_convention(context)
 
     changelog_tmpl = """python3-defaults ({next_version}) jammy; urgency=medium
 
